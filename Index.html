@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Armadilo Chat</title>
+<style>
+:root{color-scheme:light dark;--bg:#fffaf6;--card:#f4ece6;--tx:#1f1a17;--mu:#7a6f68;--ac:#c2410c;--on:#fff;--bd:#e3d9d1;--er:#dc2626;--wr:#b45309;--wrbg:#fef3c7}
+@media (prefers-color-scheme:dark){:root{--bg:#161210;--card:#231d1a;--tx:#f3ece7;--mu:#a1948b;--ac:#fb923c;--on:#1b1007;--bd:#3a312c;--er:#f87171;--wr:#fbbf24;--wrbg:#3a2a10}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit}
+input{width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;background:var(--card);margin:6px 0}
+button{cursor:pointer;border:0;border-radius:10px;padding:11px 16px;background:var(--ac);color:var(--on);font-weight:600}
+button.g{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.box{max-width:400px;margin:8vh auto;padding:0 20px}
+h1{margin:0 0 4px;font-size:26px}.mu{color:var(--mu);font-size:14px}
+.tabs{display:flex;gap:8px;margin:18px 0 8px}.tabs button{flex:1}
+#msg{min-height:22px;margin:8px 0;font-size:14px;color:var(--er)}
+#chat{display:flex;height:100%;transition:padding-top 0.3s ease}
+body.has-alert #chat{padding-top:52px}
+#side{width:300px;border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:14px;gap:10px}
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+.me{background:var(--card);border-radius:12px;padding:12px}
+.code{font-size:24px;letter-spacing:2px;font-weight:700;color:var(--ac);word-break:break-all}
+.row{display:flex;gap:8px}.row input{margin:0}
+#list{flex:1;overflow:auto}
+.it{padding:12px;border-radius:10px;cursor:pointer}.it:hover,.it.on{background:var(--card)}
+#head{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;gap:10px;align-items:center;font-weight:600}
+#back{display:none}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:78%;padding:8px 12px;border-radius:14px;background:var(--card);align-self:flex-start;overflow-wrap:anywhere;position:relative}
+.m.me2{align-self:flex-end;background:var(--ac);color:var(--on);cursor:pointer}
+.m small{display:block;opacity:.7;font-size:11px;margin-top:2px}
+#form{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--bd)}#form input{margin:0}
+.empty{margin:auto;color:var(--mu);text-align:center;padding:20px}
+#net{font-size:13px}
+#storbar{position:fixed;top:0;left:0;right:0;z-index:60;background:var(--wrbg);color:var(--wr);padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;border-bottom:1px solid var(--bd);box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)}
+#storbar b{color:var(--er)}
+#storbar .sp{flex:1}
+#btnDelAll{background:transparent;border:none;color:var(--mu);font-size:16px;padding:4px 8px;margin-left:auto;border-radius:6px}
+#btnDelAll:hover{background:var(--card);color:var(--er)}
+@media(max-width:700px){#side{width:100%;border:0}#main{display:none}#chat.open #side{display:none}#chat.open #main{display:flex}#back{display:inline-block}}
+
+/* Menu klik pesan */
+#ctxMenu{position:fixed;z-index:100;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:6px 0;display:flex;flex-direction:column;min-width:120px}
+#ctxMenu button{background:transparent;color:var(--tx);text-align:left;padding:8px 16px;border-radius:0;font-weight:normal;font-size:14px}
+#ctxMenu button:hover{background:var(--bd)}
+#ctxMenu button.del{color:var(--er)}
+</style></head><body>
+
+<div id="storbar" hidden>
+  <span>Storage hampir penuh (<b id="storpct">90%</b>). Kalau tidak dibersihkan, chat bisa terganggu. <b>Menghapus storage akan menghapus semua percakapan yang sudah terjadi.</b></span>
+  <span class="sp"></span>
+  <button id="storNow" type="button">Hapus sekarang</button>
+  <button id="storLater" type="button" class="g">Nanti</button>
+</div>
+
+<div id="auth" class="box">
+<h1>Armadilo Chat</h1><div class="mu">Chat langsung antar laptop. Akun tersimpan di laptop ini saja.</div>
+<div class="tabs"><button id="tL" type="button">Masuk</button><button id="tR" type="button" class="g">Buat Akun</button></div>
+<input id="u" placeholder="Username" autocomplete="username" maxlength="20">
+<input id="c" placeholder="Kode undangan pilihanmu (huruf/angka)" autocomplete="off" maxlength="24">
+<input id="p" type="password" placeholder="Password" autocomplete="current-password" maxlength="72">
+<input id="p2" type="password" placeholder="Ulangi password" autocomplete="new-password" maxlength="72" hidden>
+<label class="mu"><input id="sh" type="checkbox" style="width:auto;margin:0 6px 0 0">Tampilkan password</label>
+<div id="msg"></div>
+<button id="go" type="button" style="width:100%;margin-top:8px">Masuk</button>
+</div>
+
+<div id="chat" hidden>
+<div id="side">
+<div class="me"><div class="mu">Halo, <b id="who"></b>. Kode undanganmu:</div>
+<div class="code" id="code"></div>
+<div class="row" style="margin-top:8px"><button class="g" id="cp" type="button">Salin kode</button><button class="g" id="out" type="button">Keluar</button></div>
+<div id="net" class="mu" style="margin-top:8px"></div></div>
+<div class="row"><input id="fc" placeholder="Kode teman" autocomplete="off" maxlength="24"><button id="add" type="button">Mulai</button></div>
+<div id="fm" class="mu"></div>
+<div id="list"></div>
+</div>
+<div id="main">
+<div id="head"><button class="g" id="back" type="button">Kembali</button><span id="peer">Pilih percakapan</span><button id="btnDelAll" type="button" title="Hapus semua pesan di ruangan ini">🗑️</button></div>
+<div id="msgs"><div class="empty">Masukkan kode teman untuk mulai mengobrol. Temanmu harus sedang membuka halaman ini juga.</div></div>
+<div id="note" class="mu" style="padding:0 14px"></div>
+<form id="form" hidden><input id="t" maxlength="500" placeholder="Tulis pesan" autocomplete="off"><button type="submit">Kirim</button></form>
+</div>
+</div>
+
+<div id="ctxMenu" hidden>
+  <button id="btnEdit">Edit</button>
+  <button id="btnDel" class="del">Hapus</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),PFX="armadilochat-tomi-";
+let me=null,peer=null,conns={},contacts={},msgs={},cur=null,mode="L",fails=0,lock=0,pend=null,retry=0;
+let storDismissed=false,storCountdown=0;
+const LIMIT=5*1024*1024;
+const STOR_CHECK_EVERY=20;
+const EDIT_TIME_LIMIT = 15 * 60 * 1000; // 15 menit
+let ctxTarget = null; // Pesan yang sedang diedit/dihapus
+
+const enc=new TextEncoder();
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+const rnd=()=>hex(crypto.getRandomValues(new Uint8Array(16)));
+const gs=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
+const ss=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let users=gs("ac_users",{});
+const say=t=>{$("#msg").textContent=t},net=t=>{$("#net").textContent=t};
+const cleanCode=s=>String(s||"").replace(/[^A-Za-z0-9]/g,"").slice(0,24);
+
+function usedBytes(){
+  let n=0;
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const v=localStorage.getItem(k)||"";n+=k.length+v.length;}}catch(e){}
+  return n;
+}
+function storPct(){return Math.min(100,Math.round(usedBytes()/LIMIT*100))}
+function showStorBar(){
+  const p=storPct();
+  if(p<90){
+    $("#storbar").hidden=true;
+    document.body.classList.remove("has-alert");
+    return;
+  }
+  $("#storpct").textContent=p+"%";
+  $("#storbar").hidden=false;
+  document.body.classList.add("has-alert");
+}
+function checkStorage(force){
+  if(me&&!force&&storDismissed){
+    storCountdown++;
+    if(storCountdown<STOR_CHECK_EVERY)return;
+    storCountdown=0;storDismissed=false;
+  }
+  showStorBar();
+}
+async function hash(pw,salt){
+  const k=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]);
+  return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:enc.encode(salt),iterations:200000},k,256));
+}
+function setMode(m){mode=m;$("#p2").hidden=m==="L";$("#go").textContent=m==="L"?"Masuk":"Buat akun";
+  $("#tL").className=m==="L"?"":"g";$("#tR").className=m==="R"?"":"g";say("")}
+$("#tL").onclick=()=>setMode("L");$("#tR").onclick=()=>setMode("R");
+$("#sh").onchange=e=>{$("#p").type=$("#p2").type=e.target.checked?"text":"password"};
+
+function findCodeOwner(code,exceptId){
+  return Object.keys(users).find(k=>k!==exceptId&&users[k].code===code);
+}
+
+async function submit(){
+  say("");
+  const name=$("#u").value.trim(),code=cleanCode($("#c").value),pw=$("#p").value,id=name.toLowerCase();
+  if(!window.crypto||!crypto.subtle)return say("Browser ini tidak mendukung penyimpanan password yang aman. Pakai Chrome, Edge, Firefox, atau Brave.");
+  if(!/^[A-Za-z0-9_]{3,20}$/.test(name))return say("Username 3 sampai 20 karakter: huruf, angka, atau underscore.");
+  if(mode==="R"){
+    if(code.length<3)return say("Kode undangan minimal 3 karakter, hanya huruf dan angka.");
+    if(pw.length<8||!/[A-Za-z]/.test(pw)||!/\d/.test(pw))return say("Password minimal 8 karakter dan harus memuat huruf dan angka.");
+    if(pw!==$("#p2").value)return say("Ulangi password tidak sama.");
+    if(users[id])return say("Username itu sudah dipakai di laptop ini. Pilih username lain.");
+    const taken=findCodeOwner(code,null);
+    if(taken)return say("Kode undangan itu sudah dipakai pengguna lain di laptop ini. Pilih kode lain.");
+  }else{
+    if(Date.now()<lock)return say("Terlalu banyak percobaan. Coba lagi sebentar lagi.");
+  }
+  $("#go").disabled=true;
+  try{
+    if(mode==="R"){
+      const fresh=gs("ac_users",{});
+      if(fresh[id])return say("Username itu baru saja dipakai. Pilih username lain.");
+      if(findCodeOwner(code,null))return say("Kode undangan itu baru saja dipakai. Pilih kode lain.");
+      const salt=rnd(),h=await hash(pw,salt);
+      fresh[id]={name,code,salt,hash:h};users=fresh;ss("ac_users",users);start(id);
+    }else{
+      const u=users[id];
+      if(!u){if(++fails>=5){lock=Date.now()+60000;fails=0}return say("Username atau password salah.")}
+      if(code&&code!==u.code)return say("Kode undangan tidak cocok dengan akun ini.");
+      const h=await hash(pw,u.salt);
+      if(h!==u.hash){if(++fails>=5){lock=Date.now()+60000;fails=0}return say("Username atau password salah.")}
+      fails=0;start(id);
+    }
+  }catch(e){say("Terjadi masalah. Coba lagi.")}
+  finally{$("#go").disabled=false}
+}
+$("#go").onclick=submit;
+[$("#u"),$("#c"),$("#p"),$("#p2")].forEach(i=>i.onkeydown=e=>{if(e.key==="Enter")submit()});
+
+function start(id){
+  ss("ac_session",{u:id});
+  const u=users[id];me={id,name:u.name,code:u.code};
+  contacts=gs("ac_c_"+id,{});msgs=gs("ac_m_"+id,{});conns={};cur=null;
+  $("#auth").hidden=true;$("#chat").hidden=false;$("#who").textContent=u.name;$("#code").textContent=u.code;
+  $("#p").value=$("#p2").value="";$("#c").value="";renderList();startPeer();checkStorage(true);
+}
+function startPeer(){
+  if(typeof Peer==="undefined")return net("Pustaka koneksi gagal dimuat. Pastikan internet aktif lalu muat ulang halaman.");
+  net("Menyambung ke operator...");
+  peer=new Peer(PFX+me.code);
+  peer.on("open",()=>{retry=0;net("Online. Temanmu bisa menyambung dengan kodemu.");Object.keys(contacts).forEach(connect)});
+  peer.on("connection",setup);
+  peer.on("disconnected",()=>{if(peer&&!peer.destroyed){net("Terputus, mencoba menyambung ulang...");try{peer.reconnect()}catch(e){}}});
+  peer.on("error",e=>{
+    if(e.type==="unavailable-id"){
+      peer.destroy();
+      if(retry++<3){net("Kode sedang dipakai, mencoba lagi...");setTimeout(startPeer,3000)}
+      else{net("Kode undanganmu sedang dipakai orang lain di jaringan. Ganti kode dengan membuat akun baru.");retry=0}
+    }else if(e.type==="peer-unavailable"){
+      if(pend){$("#fm").textContent="Kode tidak ditemukan atau temanmu sedang offline.";pend=null}
+    }else net("Gangguan koneksi ("+e.type+"). Periksa internetmu.");
+  });
+}
+const codeOf=c=>c.peer.slice(PFX.length);
+function connect(k){if(!peer||!peer.open)return;if(conns[k]&&conns[k].open)return;setup(peer.connect(PFX+k,{reliable:true}))}
+function setup(c){
+  const hi=()=>c.send({t:"hi",name:me.name});
+  c.open?hi():c.on("open",hi);
+  c.on("data",d=>handle(c,d));
+  c.on("close",()=>{const k=codeOf(c);if(conns[k]===c){delete conns[k];renderList();head()}});
+  c.on("error",()=>{});
+}
+function handle(c,d){
+  if(!d||typeof d!=="object")return;
+  const k=codeOf(c);if(!k||k===me.code)return;
+  if(d.t==="hi"&&typeof d.name==="string"){
+    const nm=d.name.replace(/[^A-Za-z0-9_]/g,"").slice(0,20)||"Teman";
+    conns[k]=c;contacts[k]={name:nm};ss("ac_c_"+me.id,contacts);
+    if(pend===k){pend=null;$("#fm").textContent="";openChat(k)}
+    renderList();head();
+  }else if(d.t==="msg"&&typeof d.text==="string"&&contacts[k]){
+    (msgs[k]=msgs[k]||[]).push({id:d.id,f:0,x:d.text,t:Date.now()});ss("ac_m_"+me.id,msgs);
+    if(cur===k)renderMsgs();
+    checkStorage(false);
+  }else if(d.t==="edit"&&contacts[k]){
+    const list = msgs[k]||[];
+    const m = list.find(x=>x.id === d.id);
+    if(m){
+      m.x = d.text;
+      ss("ac_m_"+me.id,msgs);
+      if(cur===k)renderMsgs();
+    }
+  }else if(d.t==="del"&&contacts[k]){
+    msgs[k] = (msgs[k]||[]).filter(x => x.id !== d.id);
+    ss("ac_m_"+me.id,msgs);
+    if(cur===k)renderMsgs();
+  }else if(d.t==="clear"&&contacts[k]){
+    msgs[k] = [];
+    ss("ac_m_"+me.id,msgs);
+    if(cur===k)renderMsgs();
+  }
+}
+const on=k=>!!(conns[k]&&conns[k].open);
+function renderList(){
+  const box=$("#list");box.textContent="";
+  Object.keys(contacts).forEach(k=>{const el=document.createElement("div");el.className="it"+(cur===k?" on":"");
+    el.textContent=contacts[k].name+(on(k)?" (online)":" (offline)");el.onclick=()=>openChat(k);box.appendChild(el)});
+  if(!Object.keys(contacts).length){const e=document.createElement("div");e.className="mu";e.textContent="Belum ada percakapan.";box.appendChild(e)}
+}
+function head(){if(cur)$("#peer").textContent=contacts[cur].name+(on(cur)?" (online)":" (offline)")}
+function openChat(k){
+  cur=k;$("#form").hidden=false;$("#chat").classList.add("open");$("#note").textContent="";
+  connect(k);head();renderMsgs();renderList();
+  $("#btnDelAll").style.display = "block";
+}
+function renderMsgs(){
+  const box=$("#msgs");box.textContent="";const a=(msgs[cur]||[]).slice(-200);
+  if(!a.length){const e=document.createElement("div");e.className="empty";e.textContent="Belum ada pesan. Sapa duluan.";box.appendChild(e)}
+  
+  a.forEach(m=>{const el=document.createElement("div");el.className="m"+(m.f?" me2":"");
+    if(m.f) {
+      el.dataset.id = m.id;
+      el.dataset.time = m.t;
+    }
+    const t=document.createElement("span");t.textContent=m.x;const sm=document.createElement("small");
+    sm.textContent=(m.f?me.name:contacts[cur].name)+" · "+new Date(m.t).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+    el.append(t,sm);box.appendChild(el)});
+  box.scrollTop=box.scrollHeight;
+}
+
+// Klik pesan untuk memunculkan menu
+$("#msgs").onclick=(e)=>{
+  const m = e.target.closest(".m.me2");
+  if(!m) return;
+  const id = m.dataset.id;
+  const time = parseInt(m.dataset.time);
+  
+  if(Date.now() - time > EDIT_TIME_LIMIT) {
+    return alert("Pesan ini sudah lebih dari 15 menit, tidak bisa diedit atau dihapus lagi.");
+  }
+  
+  ctxTarget = id;
+  const rect = m.getBoundingClientRect();
+  const menu = $("#ctxMenu");
+  menu.hidden = false;
+  menu.style.left = Math.min(rect.left, window.innerWidth - 130) + "px";
+  menu.style.top = (rect.bottom + 5) + "px";
+};
+
+// Sembunyikan menu jika klik di luar
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest("#ctxMenu") && !e.target.closest(".m.me2")){
+    $("#ctxMenu").hidden = true;
+  }
+});
+
+$("#btnEdit").onclick=()=>{
+  $("#ctxMenu").hidden = true;
+  if(!ctxTarget) return;
+  const list = msgs[cur]||[];
+  const m = list.find(x=>x.id === ctxTarget);
+  if(!m) return;
+  
+  const newText = prompt("Edit pesan:", m.x);
+  if(newText !== null && newText.trim() !== "" && newText !== m.x){
+    const txt = newText.trim().slice(0,500);
+    m.x = txt;
+    ss("ac_m_"+me.id,msgs);
+    renderMsgs();
+    if(on(cur)) conns[cur].send({t:"edit", id:ctxTarget, text:txt});
+  }
+  ctxTarget = null;
+};
+
+$("#btnDel").onclick=()=>{
+  $("#ctxMenu").hidden = true;
+  if(!ctxTarget) return;
+  if(confirm("Hapus pesan ini?")){
+    msgs[cur] = (msgs[cur]||[]).filter(x=>x.id !== ctxTarget);
+    ss("ac_m_"+me.id,msgs);
+    renderMsgs();
+    if(on(cur)) conns[cur].send({t:"del", id:ctxTarget});
+  }
+  ctxTarget = null;
+};
+
+$("#btnDelAll").onclick=()=>{
+  if(!cur) return;
+  if(confirm("Hapus semua pesan di ruangan ini? Tindakan ini tidak bisa dibatalkan.")){
+    msgs[cur] = [];
+    ss("ac_m_"+me.id,msgs);
+    renderMsgs();
+    if(on(cur)) conns[cur].send({t:"clear"});
+  }
+};
+
+$("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true;};
+$("#form").onsubmit=e=>{e.preventDefault();
+  const t=$("#t").value.trim().slice(0,500);if(!t||!cur)return;
+  if(!on(cur)){connect(cur);$("#note").textContent="Teman sedang offline, pesan belum terkirim. Coba lagi setelah statusnya online.";return}
+  $("#note").textContent="";$("#t").value="";
+  
+  const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
+  conns[cur].send({t:"msg",id:id,text:t});
+  
+  (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now()});ss("ac_m_"+me.id,msgs);renderMsgs();
+  checkStorage(false);
+};
+$("#add").onclick=()=>{
+  const k=cleanCode($("#fc").value),f=$("#fm");f.textContent="";
+  if(k.length<3)return f.textContent="Kode minimal 3 karakter, huruf atau angka.";
+  if(k===me.code)return f.textContent="Itu kodemu sendiri.";
+  if(!peer||!peer.open)return f.textContent="Belum tersambung ke operator. Tunggu sampai status Online.";
+  $("#fc").value="";
+  if(contacts[k])return openChat(k);
+  pend=k;f.textContent="Menghubungi...";connect(k);
+  setTimeout(()=>{if(pend===k){pend=null;f.textContent="Kode tidak ditemukan atau temanmu sedang offline."}},8000);
+};
+$("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(me.code);$("#cp").textContent="Tersalin";setTimeout(()=>$("#cp").textContent="Salin kode",1500)}catch(e){}};
+
+$("#storNow").onclick=()=>{
+  if(!me)return;
+  msgs={};ss("ac_m_"+me.id,msgs);
+  if(cur)renderMsgs();
+  try {
+    const keep = ["ac_users", "ac_session"];
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!keep.includes(k) && !k.startsWith("ac_c_") && !k.startsWith("ac_m_")) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch(e) {}
+  storDismissed=false;storCountdown=0;
+  showStorBar(); 
+};
+$("#storLater").onclick=()=>{storDismissed=true;storCountdown=0;showStorBar()};
+
+$("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
+  if(peer)peer.destroy();peer=null;me=cur=null;conns={};
+  $("#chat").hidden=true;$("#auth").hidden=false;$("#chat").classList.remove("open");
+  $("#form").hidden=true;$("#peer").textContent="Pilih percakapan";$("#msgs").textContent="";$("#u").value="";$("#c").value="";$("#p").value="";$("#p2").value="";say("");
+  document.body.classList.remove("has-alert");$("#storbar").hidden=true;};
+
+const s=gs("ac_session",null);
+if(s&&users[s.u])start(s.u);
+</script></body></html>
