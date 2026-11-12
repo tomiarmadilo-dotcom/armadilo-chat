@@ -127,6 +127,7 @@ let ctxTarget = null;
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
+let isProcessingAudio = false; // Mencegah klik play sebelum audio siap
 
 // --- IndexedDB Setup ---
 let db;
@@ -197,7 +198,6 @@ let users=gs("ac_users",{});
 const say=t=>{$("#msg").textContent=t},net=t=>{$("#net").textContent=t};
 const cleanCode=s=>String(s||"").replace(/[^A-Za-z0-9]/g,"").slice(0,24);
 
-// Fungsi pembantu untuk konversi Blob ke Base64 dan sebaliknya
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -353,7 +353,6 @@ async function handle(c,d){
       newMsg.x = d.dur;
       newMsg.type = "audio";
       try {
-        // Terima data teks Base64, ubah kembali menjadi Blob
         const blob = base64ToBlob(d.base64);
         await saveMedia("audio_"+d.id, blob);
       } catch(e) {
@@ -479,6 +478,11 @@ async function renderMsgs(){
       
       let audioObj = null;
       btn.onclick = async () => {
+        if (isProcessingAudio) {
+          alert("Audio sedang diproses atau disimpan, mohon tunggu sebentar...");
+          return;
+        }
+        
         if (!audioObj) {
           try {
             const blob = await getMedia("audio_"+m.id);
@@ -637,19 +641,21 @@ $("#btnMic").onclick = async () => {
       $("#btnMic").classList.remove("recording");
       $("#btnMic").innerHTML = "🎤";
       isRecording = false;
+      isProcessingAudio = true; // Kunci tombol putar sementara
       
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       const durStr = formatTime(duration);
       const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
 
       try {
+        // Simpan ke gudang dan tunggu sampai benar-benar selesai
         await saveMedia("audio_"+id, audioBlob);
       } catch(e) {
         alert("Gagal menyimpan audio ke gudang.");
+        isProcessingAudio = false;
         return;
       }
 
-      // Ubah Blob menjadi teks Base64 agar aman saat dikirim
       const base64Data = await blobToBase64(audioBlob);
 
       if (on(cur)) {
@@ -660,6 +666,8 @@ $("#btnMic").onclick = async () => {
       ss("ac_m_"+me.id,msgs);
       renderMsgs();
       
+      // Buka kunci setelah semuanya beres
+      isProcessingAudio = false; 
       stream.getTracks().forEach(track => track.stop());
     };
 
