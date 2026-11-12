@@ -137,75 +137,57 @@ body.has-alert #chat { padding-top: 64px; }
 .empty { margin: auto; color: var(--tx-secondary); text-align: center; font-size: 15px; font-family: var(--font-title); }
 #net { font-size: 12px; font-weight: 600; color: var(--accent); text-align: center; margin-top: 12px; letter-spacing: 1px; }
 
-/* --- TAMPILAN MOBILE (HP) YANG SUDAH DI-FIX --- */
+/* --- PERBAIKAN TOTAL UNTUK MOBILE (HP) --- */
 @media (max-width: 800px) {
-  #chat { 
-    padding: 0; 
-    gap: 0; 
-    height: 100vh; 
-    height: 100dvh; /* Dynamic viewport height untuk HP modern */
-    display: block; /* Lepas flexbox di mobile */
-  }
+  #chat { padding: 0; gap: 0; height: 100vh; height: 100dvh; display: block; }
   
-  #side { 
-    width: 100%; 
-    border-radius: 0; 
-    border: none; 
-    padding: 20px; 
-    height: 100%; 
-    overflow-y: auto;
-  }
+  #side { width: 100%; border-radius: 0; border: none; padding: 20px; height: 100%; overflow-y: auto; }
   
   #main { 
     display: none; 
-    border-radius: 0; 
-    border: none; 
-    position: fixed; /* Kunci layar utama */
-    inset: 0; /* Memenuhi seluruh layar */
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
+    border-radius: 0; border: none; 
+    position: fixed; inset: 0; 
+    width: 100vw; height: 100vh; height: 100dvh; 
   }
   
   #chat.open #side { display: none; }
-  #chat.open #main { display: flex; } /* Munculkan layar chat */
+  #chat.open #main { display: flex; } 
   
   #back { display: flex; }
   .box { border-radius: 0; height: 100%; max-width: 100%; display: flex; flex-direction: column; justify-content: center; border: none; }
   
-  /* Kunci Header di Atas */
   #head {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 60px;
-    z-index: 5;
-    padding: 10px 16px;
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 60px; z-index: 5; padding: 10px 16px;
+    flex-shrink: 0;
   }
 
-  /* Area Chat di Tengah */
   #chat-container { 
     position: absolute;
-    top: 60px; /* Pas di bawah header */
-    bottom: 70px; /* Pas di atas kotak input */
+    top: 60px; 
+    bottom: 75px; 
     left: 0; right: 0;
     padding: 16px; 
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Kotak Input Dikunci di Bawah */
   #form { 
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 70px;
-    padding: 10px 12px; 
+    height: 75px;
+    padding: 12px; 
     gap: 8px; 
     z-index: 5;
+    display: flex;
+    align-items: center;
   }
 
-  .m { max-width: 88%; font-size: 14px; }
-  #form input { padding: 12px 14px; font-size: 14px; }
+  .m { max-width: 85%; font-size: 14px; }
+  #form input { padding: 12px 14px; font-size: 14px; height: 44px; }
   #form button[type="submit"] { padding: 0 16px; height: 44px; }
-  .btn-tool { width: 44px; height: 44px; font-size: 16px; }
+  .btn-tool { width: 44px; height: 44px; font-size: 16px; flex-shrink: 0; }
 }
 </style></head><body>
 
@@ -363,4 +345,444 @@ async function submit(){
   if(!window.crypto||!crypto.subtle)return say("Browser ini tidak mendukung penyimpanan password yang aman.");
   if(!/^[A-Za-z0-9_]{3,20}$/.test(name))return say("Username 3 sampai 20 karakter.");
   if(mode==="R"){
-    if(code.length<3)return say("Kode undangan minimal 
+    if(code.length<3)return say("Kode undangan minimal 3 karakter.");
+    if(pw.length<8||!/[A-Za-z]/.test(pw)||!/\d/.test(pw))return say("Password minimal 8 karakter, ada huruf & angka.");
+    if(pw!==$("#p2").value)return say("Ulangi password tidak sama.");
+    if(users[id])return say("Username sudah dipakai.");
+    const taken=findCodeOwner(code,null);
+    if(taken)return say("Kode undangan sudah dipakai.");
+  }else{ if(Date.now()<lock)return say("Terlalu banyak percobaan. Tunggu sebentar."); }
+  $("#go").disabled=true;
+  try{
+    if(mode==="R"){
+      const fresh=gs("ac_users",{});
+      if(fresh[id])return say("Username baru saja dipakai.");
+      if(findCodeOwner(code,null))return say("Kode undangan baru saja dipakai.");
+      const salt=rnd(),h=await hash(pw,salt);
+      fresh[id]={name,code,salt,hash:h};users=fresh;ss("ac_users",users);start(id);
+    }else{
+      const u=users[id];
+      if(!u){if(++fails>=5){lock=Date.now()+60000;fails=0}return say("Username atau password salah.")}
+      if(code&&code!==u.code)return say("Kode undangan tidak cocok.");
+      const h=await hash(pw,u.salt);
+      if(h!==u.hash){if(++fails>=5){lock=Date.now()+60000;fails=0}return say("Username atau password salah.")}
+      fails=0;start(id);
+    }
+  }catch(e){say("Terjadi masalah. Coba lagi.")}
+  finally{$("#go").disabled=false}
+}
+$("#go").onclick=submit;
+[$("#u"),$("#c"),$("#p"),$("#p2")].forEach(i=>i.onkeydown=e=>{if(e.key==="Enter")submit()});
+
+function start(id){
+  ss("ac_session",{u:id});
+  const u=users[id];me={id,name:u.name,code:u.code};
+  contacts=gs("ac_c_"+id,{});msgs=gs("ac_m_"+id,{});conns={};cur=null;
+  $("#auth").hidden=true;$("#chat").hidden=false;$("#who").textContent=u.name.toUpperCase();$("#code").textContent=u.code;
+  $("#p").value=$("#p2").value="";$("#c").value="";$("#search").value="";renderList();startPeer();checkStorage(true);
+}
+function startPeer(){
+  if(typeof Peer==="undefined")return net("Pustaka koneksi gagal dimuat.");
+  net("Menyambung...");
+  peer=new Peer(PFX+me.code);
+  peer.on("open",()=>{retry=0;net("ONLINE");Object.keys(contacts).forEach(connect)});
+  peer.on("connection",setup);
+  peer.on("disconnected",()=>{if(peer&&!peer.destroyed){net("Terputus...");try{peer.reconnect()}catch(e){}}});
+  peer.on("error",e=>{
+    if(e.type==="unavailable-id"){ peer.destroy(); if(retry++<3){net("Mencoba...");setTimeout(startPeer,3000)} else{net("Kode dipakai.");retry=0} }
+    else if(e.type==="peer-unavailable"){ if(pend){$("#fm").textContent="Kode tidak ditemukan.";pend=null} }
+    else net("Gangguan koneksi.");
+  });
+}
+const codeOf=c=>c.peer.slice(PFX.length);
+function connect(k){if(!peer||!peer.open)return;if(conns[k]&&conns[k].open)return;setup(peer.connect(PFX+k,{reliable:true}))}
+function setup(c){
+  const hi=()=>c.send({t:"hi",name:me.name});
+  c.open?hi():c.on("open",hi);
+  c.on("data",d=>handle(c,d));
+  c.on("close",()=>{const k=codeOf(c);if(conns[k]===c){delete conns[k];renderList();head()}});
+  c.on("error",()=>{});
+}
+
+function flushQueue(k) {
+  if (!on(k)) return;
+  let changed = false;
+  (msgs[k]||[]).forEach(m => {
+    if (m.f === 1 && m.status === "queued") {
+      if (m.type === "text") conns[k].send({t:"msg", id:m.id, text:m.x});
+      else if (m.type === "img") {
+        getMedia("img_"+m.id).then(blob => {
+          if(blob) blobToBase64(blob).then(b64 => conns[k].send({t:"img", id:m.id, base64:b64}));
+        });
+      }
+      else if (m.type === "audio") {
+        getMedia("audio_"+m.id).then(blob => {
+          if(blob) blobToBase64(blob).then(b64 => conns[k].send({t:"audio", id:m.id, dur:m.x, base64:b64}));
+        });
+      }
+      m.status = "sent";
+      changed = true;
+    }
+  });
+  if (changed) { ss("ac_m_"+me.id, msgs); if (cur === k) renderMsgs(); }
+}
+
+async function handle(c,d){
+  if(!d||typeof d!=="object")return;
+  const k=codeOf(c);if(!k||k===me.code)return;
+  
+  if(d.t==="hi"&&typeof d.name==="string"){
+    const nm=d.name.replace(/[^A-Za-z0-9_]/g,"").slice(0,20)||"Teman";
+    conns[k]=c;
+    if(!contacts[k]) contacts[k]={name:nm,hidden:false};
+    else { contacts[k].name=nm; contacts[k].hidden=false; }
+    ss("ac_c_"+me.id,contacts);
+    if(pend===k){pend=null;$("#fm").textContent="";openChat(k)}
+    renderList();head();
+    
+    flushQueue(k);
+
+    if(cur === k) conns[k].send({t:"read", ids: (msgs[k]||[]).filter(m=>m.f===0).map(m=>m.id)});
+  }
+  else if(d.t==="typing" && contacts[k]){
+    if(cur === k) {
+      $("#peer-status").textContent = "sedang mengetik...";
+      $("#peer-status").classList.add("typing");
+      
+      clearTimeout(partnerTypingTimeout);
+      partnerTypingTimeout = setTimeout(()=>{ 
+        const isOn = on(cur);
+        $("#peer-status").textContent = isOn ? "• Online" : "• Offline";
+        $("#peer-status").className = isOn ? "online" : "";
+      }, 2500);
+    }
+  }
+  else if(d.t==="read" && contacts[k]){
+    let changed = false;
+    (msgs[k]||[]).forEach(m => {
+      if(m.f === 1 && d.ids.includes(m.id) && m.status !== "read") { m.status = "read"; changed = true; }
+    });
+    if(changed) { ss("ac_m_"+me.id,msgs); if(cur===k)renderMsgs(); }
+  }
+  else if((d.t==="msg"||d.t==="audio"||d.t==="img")&&contacts[k]){
+    if(contacts[k].hidden){ contacts[k].hidden=false; ss("ac_c_"+me.id,contacts); renderList(); }
+    
+    if(cur === k) {
+      const isOn = on(cur);
+      $("#peer-status").textContent = isOn ? "• Online" : "• Offline";
+      $("#peer-status").className = isOn ? "online" : "";
+    }
+
+    const newMsg = {id:d.id, f:0, t:Date.now()};
+    if (d.t === "msg") { newMsg.x = d.text; newMsg.type = "text"; }
+    else if (d.t === "audio") { newMsg.x = d.dur; newMsg.type = "audio"; try { await saveMedia("audio_"+d.id, base64ToBlob(d.base64)); } catch(e) {} }
+    else if (d.t === "img") { newMsg.type = "img"; try { await saveMedia("img_"+d.id, base64ToBlob(d.base64)); } catch(e) {} }
+    (msgs[k]=msgs[k]||[]).push(newMsg); ss("ac_m_"+me.id,msgs);
+    if(cur===k) {
+      renderMsgs();
+      if(on(k)) conns[k].send({t:"read", ids: [d.id]}); 
+    }
+    checkStorage(false);
+  }
+  else if(d.t==="edit"&&contacts[k]){
+    const list = msgs[k]||[]; const m = list.find(x=>x.id === d.id);
+    if(m){ m.x = d.text; ss("ac_m_"+me.id,msgs); if(cur===k)renderMsgs(); }
+  }
+  else if(d.t==="del"&&contacts[k]){
+    msgs[k] = (msgs[k]||[]).filter(x => x.id !== d.id); ss("ac_m_"+me.id,msgs);
+    delMedia("audio_"+d.id); delMedia("img_"+d.id); 
+    if(cur===k)renderMsgs();
+  }
+  else if(d.t==="clear"&&contacts[k]){
+    msgs[k] = []; ss("ac_m_"+me.id,msgs);
+    clearMediaByPrefix("audio_"); clearMediaByPrefix("img_"); 
+    if(cur===k)renderMsgs();
+  }
+}
+const on=k=>!!(conns[k]&&conns[k].open);
+function renderList(){
+  const box=$("#list");box.textContent="";
+  const searchQ = ($("#search").value || "").toLowerCase().trim();
+  let count = 0;
+  Object.keys(contacts).forEach(k=>{
+    const c = contacts[k];
+    const matchSearch = c.name.toLowerCase().includes(searchQ);
+    if((c.hidden && !searchQ) || (!c.hidden && !matchSearch) || (c.hidden && !matchSearch)) return; 
+    count++;
+    const el=document.createElement("div");el.className="it"+(cur===k?" on":"");
+    const nameSpan = document.createElement("span"); nameSpan.className = "name";
+    nameSpan.textContent = c.name+(c.hidden?" [Hidden]":"");
+    const nameWrapper = document.createElement("div"); nameWrapper.style.display = "flex"; nameWrapper.style.alignItems = "center"; nameWrapper.appendChild(nameSpan);
+    const btnHide = document.createElement("button"); btnHide.className = "btn-hide"; btnHide.innerHTML = "✖";
+    btnHide.onclick = (e) => {
+      e.stopPropagation();
+      if(confirm("Sembunyikan kontak ini?")){
+        c.hidden = true; ss("ac_c_"+me.id,contacts);
+        if(cur===k) { cur=null; $("#chat").classList.remove("open"); }
+        renderList();
+      }
+    };
+    el.appendChild(nameWrapper); el.appendChild(btnHide); el.onclick=()=>openChat(k);
+    box.appendChild(el);
+  });
+  if(count === 0){
+    const e=document.createElement("div");e.className="mu"; e.style.textAlign="center"; e.style.marginTop="20px"; e.style.fontStyle="italic";
+    e.textContent = searchQ ? "Tidak ditemukan." : "Belum ada percakapan.";
+    box.appendChild(e);
+  }
+}
+$("#search").oninput = renderList;
+
+function head(){
+  if(cur){
+    const isOn = on(cur);
+    $("#peer-name").textContent = contacts[cur].name;
+    $("#peer-status").textContent = isOn ? "• Online" : "• Offline";
+    $("#peer-status").className = isOn ? "online" : "";
+  }
+}
+function openChat(k){
+  if(contacts[k].hidden) { contacts[k].hidden = false; ss("ac_c_"+me.id,contacts); renderList(); }
+  cur=k;$("#form").hidden=false;$("#chat").classList.add("open");$("#note").textContent="";
+  connect(k);head();renderMsgs();renderList();
+  $("#btnDelAll").style.display = "block";
+  
+  if(on(k)) {
+    flushQueue(k);
+    const unreadIds = (msgs[k]||[]).filter(m=>m.f===0).map(m=>m.id);
+    if(unreadIds.length > 0) conns[k].send({t:"read", ids: unreadIds});
+  }
+}
+
+function formatTime(sec) { return `${Math.floor(sec/60)}:${Math.floor(sec%60).toString().padStart(2,'0')}`; }
+
+async function renderMsgs(){
+  const box=$("#msgs");box.textContent="";const a=(msgs[cur]||[]).slice(-200);
+  if(!a.length){const e=document.createElement("div");e.className="empty";e.textContent="Belum ada pesan. Mulai percakapan.";box.appendChild(e)}
+  
+  for (const m of a) {
+    const el=document.createElement("div");el.className="m"+(m.f?" me2":"");
+    if(m.f) { el.dataset.id = m.id; el.dataset.time = m.t; el.dataset.type = m.type || "text"; }
+    
+    if (m.type === "audio") {
+      const aDiv = document.createElement("div"); aDiv.className = "audio-container";
+      const btn = document.createElement("button"); btn.innerHTML = "▶";
+      const progDiv = document.createElement("div"); progDiv.className = "audio-progress";
+      const bar = document.createElement("div"); bar.className = "audio-bar"; progDiv.appendChild(bar);
+      const timeSpan = document.createElement("span"); timeSpan.className = "audio-time"; timeSpan.textContent = m.x; 
+      aDiv.appendChild(btn); aDiv.appendChild(progDiv); aDiv.appendChild(timeSpan); el.appendChild(aDiv);
+      let audioObj = null;
+      btn.onclick = async () => {
+        if (isProcessingAudio) return alert("Audio sedang diproses...");
+        if (!audioObj) {
+          try {
+            const blob = await getMedia("audio_"+m.id);
+            if (!blob) return alert("File audio hilang.");
+            audioObj = new Audio(URL.createObjectURL(blob));
+            audioObj.ontimeupdate = () => { bar.style.width = (audioObj.currentTime / audioObj.duration) * 100 + "%"; timeSpan.textContent = formatTime(audioObj.currentTime); };
+            audioObj.onended = () => { btn.innerHTML = "▶"; bar.style.width = "0%"; timeSpan.textContent = m.x; };
+          } catch(e) { return alert("Gagal memuat audio."); }
+        }
+        if (audioObj.paused) { audioObj.play(); btn.innerHTML = "⏸"; } 
+        else { audioObj.pause(); btn.innerHTML = "▶"; }
+      };
+    } else if (m.type === "img") {
+      const imgDiv = document.createElement("div"); imgDiv.className = "image-container";
+      const img = document.createElement("img"); img.alt = "Memuat...";
+      img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+      imgDiv.appendChild(img); el.appendChild(imgDiv);
+      getMedia("img_"+m.id).then(blob => {
+        if(blob) {
+          img.src = URL.createObjectURL(blob);
+          imgDiv.onclick = () => { const w = window.open(""); w.document.write(`<body style="background:#000;margin:0;display:flex;justify-content:center;align-items:center;height:100vh;"><img src="${img.src}" style="max-width:100%;max-height:100vh;display:block;"></body>`); };
+        } else { img.alt = "Gambar hilang."; }
+      });
+    } else {
+      const t=document.createElement("span");t.textContent=m.x; el.append(t);
+    }
+    
+    const sm=document.createElement("small");
+    const timeStr = new Date(m.t).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+    if (m.f === 1) {
+      let statusIcon = '<span class="read-status">✓</span>';
+      if (m.status === "read") statusIcon = '<span class="read-status read">✓✓</span>';
+      else if (m.status === "queued") statusIcon = '<span class="read-status sending">⏳</span>';
+      sm.innerHTML = `${timeStr} ${statusIcon}`;
+    } else {
+      sm.textContent = timeStr;
+    }
+    
+    el.append(sm); box.appendChild(el);
+  }
+  const chatContainer = $("#chat-container");
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+$("#msgs").onclick=(e)=>{
+  const m = e.target.closest(".m.me2");
+  if(!m) return;
+  const id = m.dataset.id, time = parseInt(m.dataset.time), type = m.dataset.type;
+  if(Date.now() - time > EDIT_TIME_LIMIT) return alert("Pesan sudah lebih dari 15 menit.");
+  
+  ctxTarget = id;
+  const rect = m.getBoundingClientRect();
+  const menu = $("#ctxMenu"); menu.hidden = false;
+  menu.style.left = Math.min(rect.left, window.innerWidth - 160) + "px";
+  menu.style.top = (rect.bottom + 5) + "px";
+  $("#btnEdit").hidden = (type !== "text");
+};
+document.addEventListener("click", (e)=>{ if(!e.target.closest("#ctxMenu") && !e.target.closest(".m.me2")) $("#ctxMenu").hidden = true; });
+
+$("#btnEdit").onclick=()=>{
+  $("#ctxMenu").hidden = true; if(!ctxTarget) return;
+  const m = (msgs[cur]||[]).find(x=>x.id === ctxTarget); if(!m) return;
+  const newText = prompt("Edit pesan:", m.x);
+  if(newText && newText.trim() !== "" && newText !== m.x){
+    const txt = newText.trim().slice(0,500); m.x = txt; ss("ac_m_"+me.id,msgs); renderMsgs();
+    if(on(cur)) conns[cur].send({t:"edit", id:ctxTarget, text:txt});
+  }
+  ctxTarget = null;
+};
+
+$("#btnDel").onclick=()=>{
+  $("#ctxMenu").hidden = true; if(!ctxTarget) return;
+  if(confirm("Hapus pesan ini?")){
+    msgs[cur] = (msgs[cur]||[]).filter(x=>x.id !== ctxTarget); ss("ac_m_"+me.id,msgs);
+    delMedia("audio_"+ctxTarget); delMedia("img_"+ctxTarget); renderMsgs();
+    if(on(cur)) conns[cur].send({t:"del", id:ctxTarget});
+  }
+  ctxTarget = null;
+};
+
+$("#btnDelAll").onclick=async ()=>{
+  if(!cur || !confirm("Hapus semua pesan di ruangan ini?")) return;
+  msgs[cur] = []; ss("ac_m_"+me.id,msgs);
+  await clearMediaByPrefix("audio_"); await clearMediaByPrefix("img_");
+  renderMsgs(); if(on(cur)) conns[cur].send({t:"clear"});
+};
+
+$("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true;};
+
+$("#btnImg").onclick = () => { if(cur) $("#fileImg").click(); };
+$("#fileImg").onchange = async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try {
+    const compressedBlob = await compressImage(file, 800);
+    const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
+    await saveMedia("img_"+id, compressedBlob);
+    
+    if (on(cur)) {
+      const base64Data = await blobToBase64(compressedBlob);
+      conns[cur].send({t:"img", id:id, base64:base64Data});
+      (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,t:Date.now(),type:"img",status:"sent"});
+    } else {
+      (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,t:Date.now(),type:"img",status:"queued"});
+    }
+    ss("ac_m_"+me.id,msgs); renderMsgs();
+  } catch(err) { alert("Gagal memproses gambar."); }
+  $("#fileImg").value = ""; 
+};
+
+$("#btnMic").onclick = async () => {
+  if (!cur) return alert("Pilih kontak dulu.");
+  if (isRecording) { mediaRecorder.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream); audioChunks = []; let startTime = Date.now();
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      const duration = (Date.now() - startTime) / 1000;
+      if (duration < 1) { alert("Rekaman terlalu pendek."); stream.getTracks().forEach(t => t.stop()); return; }
+      $("#btnMic").classList.remove("recording"); $("#btnMic").innerHTML = "🎤";
+      isRecording = false; isProcessingAudio = true;
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const durStr = formatTime(duration); const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
+      try { await saveMedia("audio_"+id, audioBlob); } catch(e) { alert("Gagal simpan audio."); isProcessingAudio = false; return; }
+      
+      if (on(cur)) {
+        const base64Data = await blobToBase64(audioBlob);
+        conns[cur].send({t:"audio", id:id, dur:durStr, base64:base64Data});
+        (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio",status:"sent"});
+      } else {
+        (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio",status:"queued"});
+      }
+      ss("ac_m_"+me.id,msgs); renderMsgs();
+      isProcessingAudio = false; stream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start(); isRecording = true;
+    $("#btnMic").classList.add("recording"); $("#btnMic").innerHTML = "⏹";
+    setTimeout(() => { if (isRecording) mediaRecorder.stop(); }, 60000);
+  } catch (err) { alert("Tidak bisa mengakses mikrofon."); }
+};
+
+$("#t").addEventListener("input", () => {
+  if (!cur || !on(cur)) return;
+  
+  const now = Date.now();
+  if (!isTyping || (now - lastTypingSent > 1500)) {
+    isTyping = true;
+    lastTypingSent = now;
+    conns[cur].send({t:"typing"});
+  }
+  
+  clearTimeout(myTypingTimeout);
+  myTypingTimeout = setTimeout(() => { isTyping = false; }, 2000);
+});
+
+$("#t").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    $("#form").dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+  }
+});
+
+$("#form").onsubmit=e=>{e.preventDefault();
+  const t=$("#t").value.trim().slice(0,500);if(!t||!cur)return;
+  $("#note").textContent="";$("#t").value="";
+  
+  const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
+  const isActuallyOnline = on(cur);
+  
+  if (isActuallyOnline) {
+    try { conns[cur].send({t:"msg",id:id,text:t}); } catch(err) {}
+    (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text",status:"sent"});
+  } else {
+    (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text",status:"queued"});
+  }
+  
+  ss("ac_m_"+me.id,msgs);renderMsgs();
+  isTyping = false; 
+  checkStorage(false);
+};
+
+$("#add").onclick=()=>{
+  const k=cleanCode($("#fc").value),f=$("#fm");f.textContent="";
+  if(k.length<3)return f.textContent="Kode minimal 3 karakter.";
+  if(k===me.code)return f.textContent="Itu kodemu sendiri.";
+  if(!peer||!peer.open)return f.textContent="Belum tersambung.";
+  $("#fc").value="";
+  if(contacts[k])return openChat(k);
+  pend=k;f.textContent="Menghubungi...";connect(k);
+  setTimeout(()=>{if(pend===k){pend=null;f.textContent="Kode tidak ditemukan."}},8000);
+};
+$("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(me.code);$("#cp").textContent="Copied!";setTimeout(()=>$("#cp").textContent="Copy",1500)}catch(e){}};
+
+$("#storNow").onclick=async ()=>{
+  if(!me || !confirm("Hapus semua percakapan dan media?")) return;
+  msgs={};ss("ac_m_"+me.id,msgs);
+  await clearMediaByPrefix("audio_"); await clearMediaByPrefix("img_");
+  if(cur)renderMsgs();
+  try { const keep = ["ac_users", "ac_session"]; for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (!keep.includes(k) && !k.startsWith("ac_c_") && !k.startsWith("ac_m_")) localStorage.removeItem(k); } } catch(e) {}
+  storDismissed=false;storCountdown=0;showStorBar(); 
+};
+$("#storLater").onclick=()=>{storDismissed=true;storCountdown=0;showStorBar()};
+
+$("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
+  if(peer)peer.destroy();peer=null;me=cur=null;conns={};
+  $("#chat").hidden=true;$("#auth").hidden=false;$("#chat").classList.remove("open");
+  $("#form").hidden=true;$("#peer-name").textContent="Pilih percakapan";$("#peer-status").textContent="";$("#msgs").textContent="";$("#u").value="";$("#c").value="";$("#p").value="";$("#p2").value="";say("");
+  document.body.classList.remove("has-alert");$("#storbar").hidden=true;};
+
+const s=gs("ac_session",null);
+if(s&&users[s.u])start(s.u);
+</script></body></html>
