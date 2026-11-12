@@ -582,4 +582,154 @@ $("#btnDel").onclick=()=>{
   $("#ctxMenu").hidden = true;
   if(!ctxTarget) return;
   if(confirm("Hapus pesan ini?")){
-    msgs[cur] = (msgs[cur]||[]).filter(x=>x.id !== ctxTarget
+    msgs[cur] = (msgs[cur]||[]).filter(x=>x.id !== ctxTarget);
+    ss("ac_m_"+me.id,msgs);
+    delMedia("audio_"+ctxTarget); 
+    renderMsgs();
+    if(on(cur)) conns[cur].send({t:"del", id:ctxTarget});
+  }
+  ctxTarget = null;
+};
+
+$("#btnDelAll").onclick=async ()=>{
+  if(!cur) return;
+  if(confirm("Hapus semua pesan di ruangan ini? Tindakan ini tidak bisa dibatalkan.")){
+    msgs[cur] = [];
+    ss("ac_m_"+me.id,msgs);
+    clearMediaByPrefix("audio_");
+    renderMsgs();
+    if(on(cur)) conns[cur].send({t:"clear"});
+  }
+};
+
+$("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true;};
+
+$("#btnMic").onclick = async () => {
+  if (!cur) return;
+  if (!on(cur)) {
+    alert("Temanmu sedang offline. Kamu hanya bisa mengirim pesan suara saat dia online.");
+    return;
+  }
+
+  if (isRecording) {
+    mediaRecorder.stop();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    let startTime = Date.now();
+
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      const duration = (Date.now() - startTime) / 1000;
+      if (duration < 1) {
+        alert("Rekaman terlalu pendek.");
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      
+      $("#btnMic").classList.remove("recording");
+      $("#btnMic").innerHTML = "🎤";
+      isRecording = false;
+      
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const durStr = formatTime(duration);
+      const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
+
+      try {
+        await saveMedia("audio_"+id, audioBlob);
+      } catch(e) {
+        alert("Gagal menyimpan audio ke gudang.");
+        return;
+      }
+
+      // Ubah Blob menjadi teks Base64 agar aman saat dikirim
+      const base64Data = await blobToBase64(audioBlob);
+
+      if (on(cur)) {
+        conns[cur].send({t:"audio", id:id, dur:durStr, base64:base64Data});
+      }
+      
+      (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio"});
+      ss("ac_m_"+me.id,msgs);
+      renderMsgs();
+      
+      stream.getTracks().forEach(track => track.stop());
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    $("#btnMic").classList.add("recording");
+    $("#btnMic").innerHTML = "⏹";
+    
+    setTimeout(() => {
+      if (isRecording) {
+        mediaRecorder.stop();
+      }
+    }, 60000);
+
+  } catch (err) {
+    alert("Tidak bisa mengakses mikrofon. Pastikan kamu memberi izin.");
+  }
+};
+
+$("#form").onsubmit=e=>{e.preventDefault();
+  const t=$("#t").value.trim().slice(0,500);if(!t||!cur)return;
+  if(!on(cur)){connect(cur);$("#note").textContent="Teman sedang offline, pesan belum terkirim.";return}
+  $("#note").textContent="";$("#t").value="";
+  
+  const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
+  conns[cur].send({t:"msg",id:id,text:t});
+  
+  (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text"});ss("ac_m_"+me.id,msgs);renderMsgs();
+  checkStorage(false);
+};
+$("#add").onclick=()=>{
+  const k=cleanCode($("#fc").value),f=$("#fm");f.textContent="";
+  if(k.length<3)return f.textContent="Kode minimal 3 karakter.";
+  if(k===me.code)return f.textContent="Itu kodemu sendiri.";
+  if(!peer||!peer.open)return f.textContent="Belum tersambung ke operator.";
+  $("#fc").value="";
+  if(contacts[k])return openChat(k);
+  pend=k;f.textContent="Menghubungi...";connect(k);
+  setTimeout(()=>{if(pend===k){pend=null;f.textContent="Kode tidak ditemukan atau temanmu sedang offline."}},8000);
+};
+$("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(me.code);$("#cp").textContent="Tersalin";setTimeout(()=>$("#cp").textContent="Salin kode",1500)}catch(e){}};
+
+$("#storNow").onclick=async ()=>{
+  if(!me)return;
+  if(!confirm("Hapus semua percakapan dan media? Tindakan ini tidak bisa dibatalkan.")) return;
+  
+  msgs={};ss("ac_m_"+me.id,msgs);
+  await clearMediaByPrefix("audio_");
+  
+  if(cur)renderMsgs();
+  try {
+    const keep = ["ac_users", "ac_session"];
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!keep.includes(k) && !k.startsWith("ac_c_") && !k.startsWith("ac_m_")) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch(e) {}
+  storDismissed=false;storCountdown=0;
+  showStorBar(); 
+};
+$("#storLater").onclick=()=>{storDismissed=true;storCountdown=0;showStorBar()};
+
+$("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
+  if(peer)peer.destroy();peer=null;me=cur=null;conns={};
+  $("#chat").hidden=true;$("#auth").hidden=false;$("#chat").classList.remove("open");
+  $("#form").hidden=true;$("#peer").textContent="Pilih percakapan";$("#msgs").textContent="";$("#u").value="";$("#c").value="";$("#p").value="";$("#p2").value="";say("");
+  document.body.classList.remove("has-alert");$("#storbar").hidden=true;};
+
+const s=gs("ac_session",null);
+if(s&&users[s.u])start(s.u);
+</script></body></html>
