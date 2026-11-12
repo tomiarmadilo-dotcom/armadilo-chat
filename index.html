@@ -79,12 +79,28 @@ body.has-alert #chat { padding-top: 64px; }
 #btnThemeToggle:hover { color: var(--accent); background: var(--bg-hover); }
 #btnDelAll:hover { color: #ff453a; background: var(--bg-hover); }
 
-/* Kontainer Pesan & Typing */
-#chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; position: relative; }
+/* PERBAIKAN TATA LETAK CHAT */
+#chat-container { 
+  flex: 1; 
+  overflow-y: auto; 
+  padding: 24px; 
+  display: flex; 
+  flex-direction: column; /* Memastikan pesan tersusun dari atas ke bawah */
+  gap: 16px; /* Jarak antar pesan */
+  position: relative; 
+}
 #chat-container::-webkit-scrollbar { width: 6px; }
 #chat-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 6px; }
 
-#typing-indicator { display: none; align-self: flex-start; margin-top: -8px; }
+#msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Jarak antar gelembung pesan */
+  width: 100%;
+}
+
+/* Indikator Typing */
+#typing-indicator { display: none; margin-top: 4px; }
 #typing-indicator.active { display: block; }
 .typing-dots { display: flex; gap: 4px; padding: 10px 16px; background: var(--bubble-them); border: 1px solid var(--border-color); border-radius: 16px; border-bottom-left-radius: 4px; width: max-content; }
 .typing-dots span { width: 6px; height: 6px; background: var(--tx-secondary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
@@ -101,7 +117,7 @@ body.has-alert #chat { padding-top: 64px; }
 
 .read-status { font-size: 12px; line-height: 1; }
 .read-status.read { color: #34c759; font-weight: 800; }
-.m.me2 .read-status.read { color: #ffffff; } /* Warna centang dibaca mode gelap */
+.m.me2 .read-status.read { color: #ffffff; } 
 
 #form { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; }
 #form input { margin: 0; border-radius: 12px; padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--border-color); }
@@ -205,7 +221,7 @@ body.has-alert #chat { padding-top: 64px; }
       <button id="btnDelAll" type="button" title="Hapus semua pesan di ruangan ini">🗑️</button>
     </div>
     
-    <!-- Kontainer Pesan & Indikator Typing -->
+    <!-- Wadah Pesan yang sudah diperbaiki -->
     <div id="chat-container">
       <div id="msgs"></div>
       <div id="typing-indicator">
@@ -616,7 +632,6 @@ $("#btnMic").onclick = async () => {
   } catch (err) { alert("Tidak bisa mengakses mikrofon."); }
 };
 
-// Perbaikan Logika Ketikan & Tombol Enter
 $("#t").addEventListener("input", () => {
   if (!cur || !on(cur)) return;
   if (!isTyping) {
