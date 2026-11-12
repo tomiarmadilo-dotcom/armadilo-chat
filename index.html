@@ -50,7 +50,6 @@ body.has-alert #chat{padding-top:52px}
 #ctxMenu button:hover{background:var(--bd)}
 #ctxMenu button.del{color:var(--er)}
 
-/* Gaya untuk Audio Player */
 .audio-container { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.05); padding: 6px 10px; border-radius: 8px; margin-top: 4px; }
 @media (prefers-color-scheme:dark) { .audio-container { background: rgba(255,255,255,0.1); } }
 .m.me2 .audio-container { background: rgba(255,255,255,0.2); color: var(--on); }
@@ -125,7 +124,6 @@ const STOR_CHECK_EVERY=20;
 const EDIT_TIME_LIMIT = 15 * 60 * 1000;
 let ctxTarget = null;
 
-// State Rekaman
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
@@ -334,7 +332,9 @@ async function handle(c,d){
       newMsg.x = d.dur;
       newMsg.type = "audio";
       try {
-        await saveMedia("audio_"+d.id, d.blob);
+        // Konversi ArrayBuffer yang diterima menjadi Blob agar valid
+        const blob = new Blob([d.blob], {type: "audio/webm"});
+        await saveMedia("audio_"+d.id, blob);
       } catch(e) {
         console.error("Gagal simpan audio masuk", e);
       }
@@ -351,12 +351,12 @@ async function handle(c,d){
   }else if(d.t==="del"&&contacts[k]){
     msgs[k] = (msgs[k]||[]).filter(x => x.id !== d.id);
     ss("ac_m_"+me.id,msgs);
-    delMedia("audio_"+d.id); // Hapus audio jika itu pesan suara
+    delMedia("audio_"+d.id); 
     if(cur===k)renderMsgs();
   }else if(d.t==="clear"&&contacts[k]){
     msgs[k] = [];
     ss("ac_m_"+me.id,msgs);
-    clearMediaByPrefix("audio_"); // Bersihkan semua audio
+    clearMediaByPrefix("audio_"); 
     if(cur===k)renderMsgs();
   }
 }
@@ -449,7 +449,7 @@ async function renderMsgs(){
       
       const timeSpan = document.createElement("span");
       timeSpan.className = "audio-time";
-      timeSpan.textContent = m.x; // Durasi awal
+      timeSpan.textContent = m.x; 
       
       aDiv.appendChild(btn);
       aDiv.appendChild(progDiv);
@@ -514,7 +514,6 @@ $("#msgs").onclick=(e)=>{
   }
   
   if (type === "audio") {
-    // Audio tidak bisa diedit, hanya dihapus
     ctxTarget = id;
     const rect = m.getBoundingClientRect();
     const menu = $("#ctxMenu");
@@ -564,7 +563,7 @@ $("#btnDel").onclick=()=>{
   if(confirm("Hapus pesan ini?")){
     msgs[cur] = (msgs[cur]||[]).filter(x=>x.id !== ctxTarget);
     ss("ac_m_"+me.id,msgs);
-    delMedia("audio_"+ctxTarget); // Hapus dari IndexedDB
+    delMedia("audio_"+ctxTarget); 
     renderMsgs();
     if(on(cur)) conns[cur].send({t:"del", id:ctxTarget});
   }
@@ -576,7 +575,6 @@ $("#btnDelAll").onclick=async ()=>{
   if(confirm("Hapus semua pesan di ruangan ini? Tindakan ini tidak bisa dibatalkan.")){
     msgs[cur] = [];
     ss("ac_m_"+me.id,msgs);
-    // Hapus semua file audio terkait di IndexedDB
     clearMediaByPrefix("audio_");
     renderMsgs();
     if(on(cur)) conns[cur].send({t:"clear"});
@@ -585,7 +583,6 @@ $("#btnDelAll").onclick=async ()=>{
 
 $("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true;};
 
-// --- Logika Merekam Suara ---
 $("#btnMic").onclick = async () => {
   if (!cur) return;
   if (!on(cur)) {
@@ -624,20 +621,21 @@ $("#btnMic").onclick = async () => {
       const durStr = formatTime(duration);
       const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
 
-      // Simpan ke IndexedDB
       try {
+        // Pastikan disimpan ke gudang terlebih dahulu
         await saveMedia("audio_"+id, audioBlob);
       } catch(e) {
         alert("Gagal menyimpan audio ke gudang.");
+        return;
       }
 
-      // Kirim via PeerJS (diubah jadi ArrayBuffer agar bisa dikirim)
       const reader = new FileReader();
       reader.onload = () => {
         const buffer = reader.result;
-        conns[cur].send({t:"audio", id:id, dur:durStr, blob: buffer});
+        if (on(cur)) {
+          conns[cur].send({t:"audio", id:id, dur:durStr, blob: buffer});
+        }
         
-        // Simpan di state lokal
         (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio"});
         ss("ac_m_"+me.id,msgs);
         renderMsgs();
@@ -652,7 +650,6 @@ $("#btnMic").onclick = async () => {
     $("#btnMic").classList.add("recording");
     $("#btnMic").innerHTML = "⏹";
     
-    // Batas waktu otomatis 60 detik
     setTimeout(() => {
       if (isRecording) {
         mediaRecorder.stop();
@@ -692,7 +689,7 @@ $("#storNow").onclick=async ()=>{
   if(!confirm("Hapus semua percakapan dan media? Tindakan ini tidak bisa dibatalkan.")) return;
   
   msgs={};ss("ac_m_"+me.id,msgs);
-  await clearMediaByPrefix("audio_"); // Bersihkan audio di IndexedDB
+  await clearMediaByPrefix("audio_");
   
   if(cur)renderMsgs();
   try {
