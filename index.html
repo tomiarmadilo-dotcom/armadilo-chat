@@ -5,60 +5,27 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;800&display=swap');
 
-/* --- TEMA TERANG --- */
 :root {
-  --bg-main: #f2f2f7;
-  --bg-panel: #ffffff;
-  --bg-card: #ffffff;
-  --bg-hover: #e5e5ea;
-  
-  --tx-primary: #000000;
-  --tx-secondary: #8e8e93;
-  
-  --accent: #ff9500; 
-  --accent-hover: #e08300;
-  --on-accent: #ffffff;
-  
+  --bg-main: #f2f2f7; --bg-panel: #ffffff; --bg-card: #ffffff; --bg-hover: #e5e5ea;
+  --tx-primary: #000000; --tx-secondary: #8e8e93;
+  --accent: #ff9500; --accent-hover: #e08300; --on-accent: #ffffff;
   --border-color: #d1d1d6;
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
-  
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1); --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
   --font-title: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-bold: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  
-  --bubble-me: #ff9500;
-  --bubble-them: #ffffff;
-  --on-bubble-me: #ffffff;
-  --on-bubble-them: #000000;
+  --bubble-me: #ff9500; --bubble-them: #ffffff; --on-bubble-me: #ffffff; --on-bubble-them: #000000;
 }
 
-/* --- TEMA GELAP --- */
 body.dark-theme {
-  --bg-main: #0a0a0a;
-  --bg-panel: #141414;
-  --bg-card: #1c1c1e;
-  --bg-hover: #262628;
-  
-  --tx-primary: #f5f5f5;
-  --tx-secondary: #8e8e93;
-  
-  --accent: #e5c158;
-  --accent-hover: #fce28c;
-  --on-accent: #000000;
-  
+  --bg-main: #0a0a0a; --bg-panel: #141414; --bg-card: #1c1c1e; --bg-hover: #262628;
+  --tx-primary: #f5f5f5; --tx-secondary: #8e8e93;
+  --accent: #e5c158; --accent-hover: #fce28c; --on-accent: #000000;
   --border-color: #2c2c2e;
-  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.8);
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
-  
-  --font-title: 'Playfair Display', Georgia, serif;
-  --font-bold: 'Playfair Display', Georgia, serif;
+  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.8); --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --font-title: 'Playfair Display', Georgia, serif; --font-bold: 'Playfair Display', Georgia, serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  
-  --bubble-me: #e5c158;
-  --bubble-them: #1c1c1e;
-  --on-bubble-me: #000000;
-  --on-bubble-them: #f5f5f5;
+  --bubble-me: #e5c158; --bubble-them: #1c1c1e; --on-bubble-me: #000000; --on-bubble-them: #f5f5f5;
 }
 
 * { box-sizing: border-box; -webkit-font-smoothing: antialiased; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
@@ -69,7 +36,6 @@ button, input { font: inherit; color: inherit; outline: none; border: none; }
 
 .credits { font-family: var(--font-sans); font-size: 11px; color: var(--tx-secondary); opacity: 0.7; text-align: center; margin-top: 20px; letter-spacing: 0.5px; }
 
-/* --- Inputs & Buttons --- */
 input { width: 100%; padding: 14px 18px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-card); margin: 6px 0; transition: border-color 0.3s, box-shadow 0.3s; }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 button { cursor: pointer; border-radius: 12px; padding: 14px 20px; background: var(--accent); color: var(--on-accent); font-weight: 600; letter-spacing: 0.5px; }
@@ -78,7 +44,6 @@ button:hover { background: var(--accent-hover); }
 button.g { background: transparent; color: var(--tx-primary); border: 1px solid var(--border-color); }
 button.g:hover { background: var(--bg-hover); border-color: var(--tx-secondary); }
 
-/* --- Login Box --- */
 .box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 380px; padding: 40px 32px 24px; background: var(--bg-panel); border-radius: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); text-align: center; }
 h1 { margin: 0 0 8px; font-family: var(--font-title); font-size: 32px; font-weight: 800; letter-spacing: -0.5px; color: var(--accent); }
 .mu { color: var(--tx-secondary); font-size: 13px; letter-spacing: 0.5px; }
@@ -87,7 +52,6 @@ h1 { margin: 0 0 8px; font-family: var(--font-title); font-size: 32px; font-weig
 .tabs button:not(.g) { background: var(--bg-card); color: var(--accent); box-shadow: var(--shadow-sm); }
 #msg { min-height: 22px; margin: 8px 0; font-size: 13px; color: #ff453a; font-weight: 600; }
 
-/* --- Chat Layout --- */
 #chat { display: flex; height: 100%; padding: 16px; gap: 16px; transition: padding-top 0.3s ease; }
 body.has-alert #chat { padding-top: 64px; }
 #side { width: 320px; display: flex; flex-direction: column; gap: 16px; padding: 24px; background: var(--bg-panel); border-radius: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); z-index: 2; }
@@ -106,7 +70,6 @@ body.has-alert #chat { padding-top: 64px; }
 .it .btn-hide { background: transparent; border: none; color: var(--tx-secondary); padding: 6px; border-radius: 50%; font-size: 14px; }
 .it .btn-hide:hover { color: #ff453a; }
 
-/* --- Main Chat Area --- */
 #main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-panel); border-radius: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); overflow: hidden; position: relative; }
 #head { padding: 20px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; font-weight: 600; z-index: 10; }
 #back { display: none; padding: 8px 12px; background: transparent; border: 1px solid var(--border-color); color: var(--tx-primary); border-radius: 8px; font-size: 13px; }
@@ -116,12 +79,12 @@ body.has-alert #chat { padding-top: 64px; }
 #btnThemeToggle:hover { color: var(--accent); background: var(--bg-hover); }
 #btnDelAll:hover { color: #ff453a; background: var(--bg-hover); }
 
-#msgs { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-#msgs::-webkit-scrollbar { width: 6px; }
-#msgs::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 6px; }
+/* Kontainer Pesan & Typing */
+#chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; position: relative; }
+#chat-container::-webkit-scrollbar { width: 6px; }
+#chat-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 6px; }
 
-/* --- TYPING INDICATOR --- */
-#typing-indicator { display: none; align-self: flex-start; margin-bottom: -8px; }
+#typing-indicator { display: none; align-self: flex-start; margin-top: -8px; }
 #typing-indicator.active { display: block; }
 .typing-dots { display: flex; gap: 4px; padding: 10px 16px; background: var(--bubble-them); border: 1px solid var(--border-color); border-radius: 16px; border-bottom-left-radius: 4px; width: max-content; }
 .typing-dots span { width: 6px; height: 6px; background: var(--tx-secondary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
@@ -136,12 +99,10 @@ body.has-alert #chat { padding-top: 64px; }
 .m small { display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 11px; margin-top: 6px; opacity: 0.8; letter-spacing: 0.5px; }
 .m.me2 small { color: var(--on-bubble-me); opacity: 0.9; }
 
-/* Centang Terkirim vs Dibaca */
 .read-status { font-size: 12px; line-height: 1; }
-.read-status.read { color: #34c759; } /* Warna hijau centang dibaca */
-.m.me2 .read-status.read { color: #fff; } /* Warna hijau terang di mode gelap */
+.read-status.read { color: #34c759; font-weight: 800; }
+.m.me2 .read-status.read { color: #ffffff; } /* Warna centang dibaca mode gelap */
 
-/* --- Input Bar --- */
 #form { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; }
 #form input { margin: 0; border-radius: 12px; padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--border-color); }
 #form input:focus { border-color: var(--accent); box-shadow: none; }
@@ -151,7 +112,6 @@ body.has-alert #chat { padding-top: 64px; }
 #btnMic.recording { color: #ff453a; border-color: #ff453a; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-/* --- Media & Menus --- */
 #ctxMenu { position: fixed; z-index: 100; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 8px 0; display: flex; flex-direction: column; min-width: 160px; }
 #ctxMenu button { background: transparent; color: var(--tx-primary); text-align: left; padding: 12px 20px; border-radius: 0; font-weight: 500; font-size: 14px; }
 #ctxMenu button:hover { background: var(--bg-hover); color: var(--accent); }
@@ -245,13 +205,12 @@ body.has-alert #chat { padding-top: 64px; }
       <button id="btnDelAll" type="button" title="Hapus semua pesan di ruangan ini">🗑️</button>
     </div>
     
-    <div id="msgs">
-      <div class="empty">Pilih teman untuk mulai mengobrol.</div>
-    </div>
-    
-    <!-- Indikator Mengetik -->
-    <div id="typing-indicator">
-      <div class="typing-dots"><span></span><span></span><span></span></div>
+    <!-- Kontainer Pesan & Indikator Typing -->
+    <div id="chat-container">
+      <div id="msgs"></div>
+      <div id="typing-indicator">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
     </div>
 
     <div id="note" class="mu" style="padding:0 24px; text-align:center;"></div>
@@ -286,86 +245,32 @@ let audioChunks = [];
 let isRecording = false;
 let isProcessingAudio = false;
 
-// --- Variabel untuk Status & Typing ---
 let myTypingTimeout = null;
 let isTyping = false;
 let partnerTypingTimeout = null;
 
-// --- Tema Logic ---
 function applyTheme(isDark) {
-  if (isDark) {
-    document.body.classList.add("dark-theme");
-    localStorage.setItem("ac_theme", "dark");
-  } else {
-    document.body.classList.remove("dark-theme");
-    localStorage.setItem("ac_theme", "light");
-  }
+  if (isDark) { document.body.classList.add("dark-theme"); localStorage.setItem("ac_theme", "dark"); } 
+  else { document.body.classList.remove("dark-theme"); localStorage.setItem("ac_theme", "light"); }
 }
 if (localStorage.getItem("ac_theme") === "dark" || (!localStorage.getItem("ac_theme") && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
   document.body.classList.add("dark-theme");
-} else {
-  document.body.classList.remove("dark-theme");
-}
+} else { document.body.classList.remove("dark-theme"); }
 function toggleTheme() { applyTheme(!document.body.classList.contains("dark-theme")); }
 $("#themeToggleAuth").onclick = toggleTheme;
 $("#btnThemeToggle").onclick = toggleTheme;
 
-// --- IndexedDB Setup ---
 let db;
 const dbReq = indexedDB.open("ArmadiloChatDB", 1);
-dbReq.onupgradeneeded = e => {
-  db = e.target.result;
-  if (!db.objectStoreNames.contains("media")) { db.createObjectStore("media"); }
-};
+dbReq.onupgradeneeded = e => { db = e.target.result; if (!db.objectStoreNames.contains("media")) { db.createObjectStore("media"); } };
 dbReq.onsuccess = e => { db = e.target.result; };
 dbReq.onerror = e => { console.error("IndexedDB error:", e); };
 
-function saveMedia(id, blob) {
-  return new Promise((resolve, reject) => {
-    if(!db) return reject("DB belum siap");
-    const tx = db.transaction("media", "readwrite");
-    tx.objectStore("media").put(blob, id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = e => reject(e);
-  });
-}
-function getMedia(id) {
-  return new Promise((resolve, reject) => {
-    if(!db) return reject("DB belum siap");
-    const tx = db.transaction("media", "readonly");
-    const req = tx.objectStore("media").get(id);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = e => reject(e);
-  });
-}
-function delMedia(id) {
-  return new Promise((resolve, reject) => {
-    if(!db) return resolve();
-    const tx = db.transaction("media", "readwrite");
-    tx.objectStore("media").delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = e => reject(e);
-  });
-}
-function clearMediaByPrefix(prefix) {
-  return new Promise((resolve, reject) => {
-    if(!db) return resolve();
-    const tx = db.transaction("media", "readwrite");
-    const store = tx.objectStore("media");
-    const req = store.openKeyCursor();
-    req.onsuccess = e => {
-      const cursor = e.target.result;
-      if (cursor) {
-        if (cursor.key.startsWith(prefix)) { store.delete(cursor.key); }
-        cursor.continue();
-      }
-    };
-    tx.oncomplete = () => resolve();
-    tx.onerror = e => reject(e);
-  });
-}
+function saveMedia(id, blob) { return new Promise((resolve, reject) => { if(!db) return reject("DB belum siap"); const tx = db.transaction("media", "readwrite"); tx.objectStore("media").put(blob, id); tx.oncomplete = () => resolve(); tx.onerror = e => reject(e); }); }
+function getMedia(id) { return new Promise((resolve, reject) => { if(!db) return reject("DB belum siap"); const tx = db.transaction("media", "readonly"); const req = tx.objectStore("media").get(id); req.onsuccess = () => resolve(req.result); req.onerror = e => reject(e); }); }
+function delMedia(id) { return new Promise((resolve, reject) => { if(!db) return resolve(); const tx = db.transaction("media", "readwrite"); tx.objectStore("media").delete(id); tx.oncomplete = () => resolve(); tx.onerror = e => reject(e); }); }
+function clearMediaByPrefix(prefix) { return new Promise((resolve, reject) => { if(!db) return resolve(); const tx = db.transaction("media", "readwrite"); const store = tx.objectStore("media"); const req = store.openKeyCursor(); req.onsuccess = e => { const cursor = e.target.result; if (cursor) { if (cursor.key.startsWith(prefix)) { store.delete(cursor.key); } cursor.continue(); } }; tx.oncomplete = () => resolve(); tx.onerror = e => reject(e); }); }
 
-// --- Helpers ---
 const enc=new TextEncoder();
 const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
 const rnd=()=>hex(crypto.getRandomValues(new Uint8Array(16)));
@@ -375,74 +280,18 @@ let users=gs("ac_users",{});
 const say=t=>{$("#msg").textContent=t},net=t=>{$("#net").textContent=t};
 const cleanCode=s=>String(s||"").replace(/[^A-Za-z0-9]/g,"").slice(0,24);
 
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-function base64ToBlob(base64) {
-  const parts = base64.split(';base64,');
-  const contentType = parts[0].split(':')[1];
-  const raw = window.atob(parts[1]);
-  const rawLength = raw.length;
-  const uInt8Array = new Uint8Array(rawLength);
-  for (let i = 0; i < rawLength; ++i) { uInt8Array[i] = raw.charCodeAt(i); }
-  return new Blob([uInt8Array], {type: contentType});
-}
+function blobToBase64(blob) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); }); }
+function base64ToBlob(base64) { const parts = base64.split(';base64,'); const contentType = parts[0].split(':')[1]; const raw = window.atob(parts[1]); const rawLength = raw.length; const uInt8Array = new Uint8Array(rawLength); for (let i = 0; i < rawLength; ++i) { uInt8Array[i] = raw.charCodeAt(i); } return new Blob([uInt8Array], {type: contentType}); }
+function compressImage(file, maxWidth = 800) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.src = event.target.result; img.onload = () => { let width = img.width; let height = img.height; if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; } const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, width, height); canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.7); }; img.onerror = err => reject(err); }; reader.onerror = err => reject(err); }); }
 
-function compressImage(file, maxWidth = 800) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = event => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        let width = img.width; let height = img.height;
-        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-        const canvas = document.createElement("canvas");
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.7);
-      };
-      img.onerror = err => reject(err);
-    };
-    reader.onerror = err => reject(err);
-  });
-}
-
-function usedBytes(){
-  let n=0;
-  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const v=localStorage.getItem(k)||"";n+=k.length+v.length;}}catch(e){}
-  return n;
-}
+function usedBytes(){ let n=0; try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const v=localStorage.getItem(k)||"";n+=k.length+v.length;}}catch(e){} return n; }
 function storPct(){return Math.min(100,Math.round(usedBytes()/LIMIT*100))}
-function showStorBar(){
-  const p=storPct();
-  if(p<90){ $("#storbar").hidden=true; document.body.classList.remove("has-alert"); return; }
-  $("#storpct").textContent=p+"%"; $("#storbar").hidden=false; document.body.classList.add("has-alert");
-}
-function checkStorage(force){
-  if(me&&!force&&storDismissed){
-    storCountdown++;
-    if(storCountdown<STOR_CHECK_EVERY)return;
-    storCountdown=0;storDismissed=false;
-  }
-  showStorBar();
-}
-async function hash(pw,salt){
-  const k=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]);
-  return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:enc.encode(salt),iterations:200000},k,256));
-}
-function setMode(m){mode=m;$("#p2").hidden=m==="L";$("#go").textContent=m==="L"?"Sign In":"Register";
-  $("#tL").className=m==="L"?"":"g";$("#tR").className=m==="R"?"":"g";say("")}
+function showStorBar(){ const p=storPct(); if(p<90){ $("#storbar").hidden=true; document.body.classList.remove("has-alert"); return; } $("#storpct").textContent=p+"%"; $("#storbar").hidden=false; document.body.classList.add("has-alert"); }
+function checkStorage(force){ if(me&&!force&&storDismissed){ storCountdown++; if(storCountdown<STOR_CHECK_EVERY)return; storCountdown=0;storDismissed=false; } showStorBar(); }
+async function hash(pw,salt){ const k=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]); return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:enc.encode(salt),iterations:200000},k,256)); }
+function setMode(m){mode=m;$("#p2").hidden=m==="L";$("#go").textContent=m==="L"?"Sign In":"Register"; $("#tL").className=m==="L"?"":"g";$("#tR").className=m==="R"?"":"g";say("")}
 $("#tL").onclick=()=>setMode("L");$("#tR").onclick=()=>setMode("R");
 $("#sh").onchange=e=>{$("#p").type=$("#p2").type=e.target.checked?"text":"password"};
-
 function findCodeOwner(code,exceptId){ return Object.keys(users).find(k=>k!==exceptId&&users[k].code===code); }
 
 async function submit(){
@@ -457,9 +306,7 @@ async function submit(){
     if(users[id])return say("Username sudah dipakai.");
     const taken=findCodeOwner(code,null);
     if(taken)return say("Kode undangan sudah dipakai.");
-  }else{
-    if(Date.now()<lock)return say("Terlalu banyak percobaan. Tunggu sebentar.");
-  }
+  }else{ if(Date.now()<lock)return say("Terlalu banyak percobaan. Tunggu sebentar."); }
   $("#go").disabled=true;
   try{
     if(mode==="R"){
@@ -523,11 +370,7 @@ async function handle(c,d){
     ss("ac_c_"+me.id,contacts);
     if(pend===k){pend=null;$("#fm").textContent="";openChat(k)}
     renderList();head();
-    
-    // Kirim sinyal "dibaca" jika kita sedang berada di room ini
-    if(cur === k) {
-      conns[k].send({t:"read", ids: (msgs[k]||[]).filter(m=>m.f===0).map(m=>m.id)});
-    }
+    if(cur === k) conns[k].send({t:"read", ids: (msgs[k]||[]).filter(m=>m.f===0).map(m=>m.id)});
   }
   else if(d.t==="typing" && contacts[k]){
     if(cur === k) {
@@ -539,10 +382,7 @@ async function handle(c,d){
   else if(d.t==="read" && contacts[k]){
     let changed = false;
     (msgs[k]||[]).forEach(m => {
-      if(m.f === 1 && d.ids.includes(m.id) && m.status !== "read") {
-        m.status = "read";
-        changed = true;
-      }
+      if(m.f === 1 && d.ids.includes(m.id) && m.status !== "read") { m.status = "read"; changed = true; }
     });
     if(changed) { ss("ac_m_"+me.id,msgs); if(cur===k)renderMsgs(); }
   }
@@ -555,11 +395,9 @@ async function handle(c,d){
     (msgs[k]=msgs[k]||[]).push(newMsg); ss("ac_m_"+me.id,msgs);
     if(cur===k) {
       renderMsgs();
-      if(on(k)) conns[k].send({t:"read", ids: [d.id]}); // Langsung tandai dibaca jika room terbuka
+      if(on(k)) conns[k].send({t:"read", ids: [d.id]}); 
     }
     checkStorage(false);
-    
-    // Hilangkan indikator typing
     if(cur === k) $("#typing-indicator").classList.remove("active");
   }
   else if(d.t==="edit"&&contacts[k]){
@@ -625,7 +463,6 @@ function openChat(k){
   connect(k);head();renderMsgs();renderList();
   $("#btnDelAll").style.display = "block";
   
-  // Beri tahu pengirim bahwa pesan sudah dibaca
   if(on(k)) {
     const unreadIds = (msgs[k]||[]).filter(m=>m.f===0).map(m=>m.id);
     if(unreadIds.length > 0) conns[k].send({t:"read", ids: unreadIds});
@@ -679,7 +516,6 @@ async function renderMsgs(){
       const t=document.createElement("span");t.textContent=m.x; el.append(t);
     }
     
-    // Status Centang
     const sm=document.createElement("small");
     const timeStr = new Date(m.t).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
     if (m.f === 1) {
@@ -691,7 +527,8 @@ async function renderMsgs(){
     
     el.append(sm); box.appendChild(el);
   }
-  box.scrollTop=box.scrollHeight;
+  const chatContainer = $("#chat-container");
+  chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 $("#msgs").onclick=(e)=>{
@@ -779,7 +616,7 @@ $("#btnMic").onclick = async () => {
   } catch (err) { alert("Tidak bisa mengakses mikrofon."); }
 };
 
-// --- FORM SUBMIT & TYPING EVENT ---
+// Perbaikan Logika Ketikan & Tombol Enter
 $("#t").addEventListener("input", () => {
   if (!cur || !on(cur)) return;
   if (!isTyping) {
@@ -787,15 +624,13 @@ $("#t").addEventListener("input", () => {
     conns[cur].send({t:"typing"});
   }
   clearTimeout(myTypingTimeout);
-  myTypingTimeout = setTimeout(() => {
-    isTyping = false;
-  }, 2000);
+  myTypingTimeout = setTimeout(() => { isTyping = false; }, 2000);
 });
 
 $("#t").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    $("#form").requestSubmit();
+    $("#form").dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   }
 });
 
@@ -808,7 +643,7 @@ $("#form").onsubmit=e=>{e.preventDefault();
   conns[cur].send({t:"msg",id:id,text:t});
   (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text",status:"sent"});ss("ac_m_"+me.id,msgs);renderMsgs();
   
-  isTyping = false; // Reset typing
+  isTyping = false; 
   checkStorage(false);
 };
 $("#add").onclick=()=>{
