@@ -150,7 +150,9 @@ body.has-alert #chat { padding-top: 64px; }
 }
 #back { display: none; padding: 8px 12px; background: transparent; border: 1px solid var(--border-color); color: var(--tx-primary); border-radius: 8px; font-size: 13px; }
 #peer { font-family: var(--font-title); font-size: 20px; letter-spacing: 0.5px; }
-#btnDelAll { background: transparent; border: none; color: var(--tx-secondary); font-size: 18px; padding: 8px; margin-left: auto; border-radius: 8px; }
+#btnDelAll, #btnThemeToggle { background: transparent; border: none; color: var(--tx-secondary); font-size: 18px; padding: 8px; border-radius: 8px; cursor: pointer; }
+#btnDelAll { margin-left: auto; }
+#btnThemeToggle:hover { color: var(--accent); }
 #btnDelAll:hover { color: #ff453a; }
 
 #msgs {
@@ -252,10 +254,6 @@ body.has-alert #chat { padding-top: 64px; }
 .empty { margin: auto; color: var(--tx-secondary); text-align: center; font-size: 15px; font-family: var(--font-title); }
 #net { font-size: 12px; font-weight: 600; color: var(--accent); text-align: center; margin-top: 12px; letter-spacing: 1px; }
 
-/* Tombol Tema */
-#themeToggle { background: transparent; border: 1px solid var(--border-color); color: var(--tx-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; }
-#themeToggle:hover { background: var(--bg-hover); }
-
 @media (max-width: 800px) {
   #chat { padding: 0; gap: 0; }
   #side { width: 100%; border-radius: 0; border: none; padding: 20px; }
@@ -292,7 +290,8 @@ body.has-alert #chat { padding-top: 64px; }
   <div id="msg"></div>
   <button id="go" type="button" style="width:100%; margin-top:12px;">Masuk</button>
   
-  <button id="themeToggleAuth" style="background:transparent; color:var(--tx-secondary); margin-top:16px; font-weight:400; font-size:13px; border:none;">Ubah Tema</button>
+  <!-- Tombol tema di layar login -->
+  <button id="themeToggleAuth" style="background:transparent; color:var(--tx-secondary); margin-top:16px; font-weight:400; font-size:13px; border:none; cursor:pointer;">🌓 Ubah Tema</button>
 </div>
 
 <div id="chat" hidden>
@@ -307,7 +306,6 @@ body.has-alert #chat { padding-top: 64px; }
         <button class="g" id="out" type="button" style="flex:1; font-size:13px; padding:10px;">Log Out</button>
       </div>
       <div id="net" class="mu"></div>
-      <button id="themeToggle" type="button">🌓 Ubah Tema</button>
     </div>
     
     <div class="row" style="margin-top:8px;"><input id="search" placeholder="Cari kontak..." autocomplete="off" style="background:transparent; padding:10px 14px; font-size:14px;"></div>
@@ -320,6 +318,8 @@ body.has-alert #chat { padding-top: 64px; }
     <div id="head">
       <button class="g" id="back" type="button">Kembali</button>
       <span id="peer">Pilih percakapan</span>
+      <!-- Tombol tema di dalam ruang chat -->
+      <button id="btnThemeToggle" type="button" title="Ubah Tema">🌓</button>
       <button id="btnDelAll" type="button" title="Hapus semua pesan di ruangan ini">🗑️</button>
     </div>
     
@@ -376,8 +376,8 @@ if (localStorage.getItem("ac_theme") === "dark" || (!localStorage.getItem("ac_th
 function toggleTheme() {
   applyTheme(!document.body.classList.contains("dark-theme"));
 }
-$("#themeToggle").onclick = toggleTheme;
 $("#themeToggleAuth").onclick = toggleTheme;
+$("#btnThemeToggle").onclick = toggleTheme;
 
 // --- IndexedDB Setup ---
 let db;
