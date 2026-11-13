@@ -292,7 +292,6 @@ let lastTypingSent = 0;
 let heartbeatInterval = null;
 let missedPongs = {};
 
-// --- Pengaturan Suara & Audio Unlocker ---
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
 let audioCtx = null;
 
@@ -311,7 +310,6 @@ $("#btnSoundToggle").onclick = () => {
   }
 };
 
-// Fungsi membangunkan mesin audio
 function unlockAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -321,14 +319,12 @@ function unlockAudio() {
   }
 }
 
-// Suara notifikasi "Ting-Ting" (Mirip iPhone, 2 nada bersih)
 function playTing() {
   if (!soundEnabled) return;
   try {
     unlockAudio();
     const now = audioCtx.currentTime;
     
-    // Nada Pertama (E6)
     const osc1 = audioCtx.createOscillator();
     const gain1 = audioCtx.createGain();
     osc1.type = 'sine';
@@ -339,7 +335,6 @@ function playTing() {
     osc1.connect(gain1); gain1.connect(audioCtx.destination);
     osc1.start(now); osc1.stop(now + 0.2);
 
-    // Nada Kedua (G6) - berbunyi sedikit setelah nada pertama
     const osc2 = audioCtx.createOscillator();
     const gain2 = audioCtx.createGain();
     osc2.type = 'sine';
@@ -353,11 +348,9 @@ function playTing() {
   } catch(e) {}
 }
 
-// Membangunkan audio pada setiap interaksi pengguna
 document.addEventListener('click', unlockAudio);
 document.addEventListener('keydown', unlockAudio);
 document.addEventListener('touchstart', unlockAudio);
-// ------------------------------------------
 
 function applyTheme(isDark) {
   if (isDark) { document.body.classList.add("dark-theme"); localStorage.setItem("ac_theme", "dark"); } 
@@ -555,12 +548,15 @@ async function handle(c,d){
   }
   else if((d.t==="msg"||d.t==="audio"||d.t==="img")&&contacts[k]){
     if(contacts[k].hidden){ contacts[k].hidden=false; ss("ac_c_"+me.id,contacts); renderList(); }
+    
+    // --- OPSI A: Suara berbunyi di mana saja ---
+    playTing();
+    // -------------------------------------------
+
     if(cur === k) {
       const isOn = on(cur);
       $("#peer-status").textContent = isOn ? "• Online" : "• Offline";
       $("#peer-status").className = isOn ? "online" : "";
-    } else {
-      playTing();
     }
 
     const newMsg = {id:d.id, f:0, t:Date.now()};
