@@ -140,49 +140,16 @@ body.has-alert #chat { padding-top: 64px; }
 /* --- PERBAIKAN TOTAL UNTUK MOBILE (HP) --- */
 @media (max-width: 800px) {
   #chat { padding: 0; gap: 0; height: 100vh; height: 100dvh; display: block; }
-  
   #side { width: 100%; border-radius: 0; border: none; padding: 20px; height: 100%; overflow-y: auto; }
-  
-  #main { 
-    display: none; 
-    border-radius: 0; border: none; 
-    position: fixed; inset: 0; 
-    width: 100vw; height: 100vh; height: 100dvh; 
-  }
-  
+  #main { display: none; border-radius: 0; border: none; position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; }
   #chat.open #side { display: none; }
   #chat.open #main { display: flex; } 
-  
   #back { display: flex; }
   .box { border-radius: 0; height: 100%; max-width: 100%; display: flex; flex-direction: column; justify-content: center; border: none; }
   
-  #head {
-    position: absolute; top: 0; left: 0; right: 0;
-    height: 60px; z-index: 5; padding: 10px 16px;
-    flex-shrink: 0;
-  }
-
-  #chat-container { 
-    position: absolute;
-    top: 60px; 
-    bottom: 75px; 
-    left: 0; right: 0;
-    padding: 16px; 
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-  }
-
-  #form { 
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 75px;
-    padding: 12px; 
-    gap: 8px; 
-    z-index: 5;
-    display: flex;
-    align-items: center;
-  }
+  #head { position: absolute; top: 0; left: 0; right: 0; height: 60px; z-index: 5; padding: 10px 16px; flex-shrink: 0; }
+  #chat-container { position: absolute; top: 60px; bottom: 75px; left: 0; right: 0; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; }
+  #form { position: absolute; bottom: 0; left: 0; right: 0; height: 75px; padding: 12px; gap: 8px; z-index: 5; display: flex; align-items: center; }
 
   .m { max-width: 85%; font-size: 14px; }
   #form input { padding: 12px 14px; font-size: 14px; height: 44px; }
@@ -294,6 +261,10 @@ let isTyping = false;
 let partnerTypingTimeout = null;
 let lastTypingSent = 0;
 
+// --- Variabel Heartbeat ---
+let heartbeatInterval = null;
+let missedPongs = {}; // Menyimpan jumlah pong yang terlewat per kontak
+
 function applyTheme(isDark) {
   if (isDark) { document.body.classList.add("dark-theme"); localStorage.setItem("ac_theme", "dark"); } 
   else { document.body.classList.remove("dark-theme"); localStorage.setItem("ac_theme", "light"); }
@@ -385,7 +356,7 @@ function startPeer(){
   if(typeof Peer==="undefined")return net("Pustaka koneksi gagal dimuat.");
   net("Menyambung...");
   peer=new Peer(PFX+me.code);
-  peer.on("open",()=>{retry=0;net("ONLINE");Object.keys(contacts).forEach(connect)});
+  peer.on("open",()=>{retry=0;net("ONLINE");Object.keys(contacts).forEach(connect); startHeartbeat();});
   peer.on("connection",setup);
   peer.on("disconnected",()=>{if(peer&&!peer.destroyed){net("Terputus...");try{peer.reconnect()}catch(e){}}});
   peer.on("error",e=>{
@@ -400,9 +371,55 @@ function setup(c){
   const hi=()=>c.send({t:"hi",name:me.name});
   c.open?hi():c.on("open",hi);
   c.on("data",d=>handle(c,d));
-  c.on("close",()=>{const k=codeOf(c);if(conns[k]===c){delete conns[k];renderList();head()}});
+  c.on("close",()=>{
+    const k=codeOf(c);
+    if(conns[k]===c){
+      delete conns[k];
+      delete missedPongs[k];
+      renderList();
+      head();
+    }
+  });
   c.on("error",()=>{});
 }
+
+// --- SISTEM HEARTBEAT ---
+function startHeartbeat() {
+  clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(() => {
+    Object.keys(conns).forEach(k => {
+      if (conns[k] && conns[k].open) {
+        try {
+          conns[k].send({t: "ping"});
+          // Jika dalam 5 detik tidak ada balasan (pong), anggap offline
+          if (missedPongs[k] === undefined) missedPongs[k] = 0;
+          missedPongs[k]++;
+          
+          if (missedPongs[k] >= 2) { // 2 kali terlewat (6 detik)
+            conns[k].close();
+            delete conns[k];
+            delete missedPongs[k];
+            renderList();
+            head();
+          } else {
+            setTimeout(() => {
+              if (conns[k] && missedPongs[k] > 0) {
+                // Jika masih ada di conns, berarti pong belum diterima
+                if (missedPongs[k] >= 2) {
+                   conns[k].close();
+                   delete conns[k];
+                   renderList();
+                   head();
+                }
+              }
+            }, 3000); // Cek setelah 3 detik
+          }
+        } catch(e) { console.log("Ping error", e); }
+      }
+    });
+  }, 3000);
+}
+// -------------------------
 
 function flushQueue(k) {
   if (!on(k)) return;
@@ -431,9 +448,19 @@ async function handle(c,d){
   if(!d||typeof d!=="object")return;
   const k=codeOf(c);if(!k||k===me.code)return;
   
+  // Respon Heartbeat
+  if(d.t==="ping"){
+    if(c.open) c.send({t:"pong"});
+    return;
+  }
+  if(d.t==="pong"){
+    missedPongs[k] = 0; // Reset hitungan jika dibalas
+    return;
+  }
+
   if(d.t==="hi"&&typeof d.name==="string"){
     const nm=d.name.replace(/[^A-Za-z0-9_]/g,"").slice(0,20)||"Teman";
-    conns[k]=c;
+    conns[k]=c; missedPongs[k]=0;
     if(!contacts[k]) contacts[k]={name:nm,hidden:false};
     else { contacts[k].name=nm; contacts[k].hidden=false; }
     ss("ac_c_"+me.id,contacts);
@@ -779,6 +806,7 @@ $("#storLater").onclick=()=>{storDismissed=true;storCountdown=0;showStorBar()};
 
 $("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
   if(peer)peer.destroy();peer=null;me=cur=null;conns={};
+  clearInterval(heartbeatInterval); // Matikan heartbeat
   $("#chat").hidden=true;$("#auth").hidden=false;$("#chat").classList.remove("open");
   $("#form").hidden=true;$("#peer-name").textContent="Pilih percakapan";$("#peer-status").textContent="";$("#msgs").textContent="";$("#u").value="";$("#c").value="";$("#p").value="";$("#p2").value="";say("");
   document.body.classList.remove("has-alert");$("#storbar").hidden=true;};
