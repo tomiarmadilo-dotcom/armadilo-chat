@@ -75,6 +75,16 @@ body.has-alert #chat { padding-top: 64px; }
 .it .btn-hide { background: transparent; border: none; color: var(--tx-secondary); padding: 6px; border-radius: 50%; font-size: 14px; }
 .it .btn-hide:hover { color: #ff453a; }
 
+/* --- Gaya Badge Unread --- */
+.unread-badge { 
+  background: var(--accent); color: var(--on-accent); 
+  font-size: 11px; font-weight: 800; font-family: var(--font-sans);
+  padding: 2px 7px; border-radius: 10px; margin-left: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.unread-badge:empty { display: none; }
+
 #main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-panel); border-radius: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); overflow: hidden; position: relative; }
 
 #head { padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; font-weight: 600; z-index: 10; flex-shrink: 0; }
@@ -549,9 +559,7 @@ async function handle(c,d){
   else if((d.t==="msg"||d.t==="audio"||d.t==="img")&&contacts[k]){
     if(contacts[k].hidden){ contacts[k].hidden=false; ss("ac_c_"+me.id,contacts); renderList(); }
     
-    // --- OPSI A: Suara berbunyi di mana saja ---
     playTing();
-    // -------------------------------------------
 
     if(cur === k) {
       const isOn = on(cur);
@@ -570,6 +578,7 @@ async function handle(c,d){
       if(on(k)) conns[k].send({t:"read", ids: [d.id]}); 
     }
     checkStorage(false);
+    renderList(); // Segera perbarui daftar kontak untuk menampilkan unread
   }
   else if(d.t==="edit"&&contacts[k]){
     const list = msgs[k]||[]; const m = list.find(x=>x.id === d.id);
@@ -579,14 +588,24 @@ async function handle(c,d){
     msgs[k] = (msgs[k]||[]).filter(x => x.id !== d.id); ss("ac_m_"+me.id,msgs);
     delMedia("audio_"+d.id); delMedia("img_"+d.id); 
     if(cur===k)renderMsgs();
+    renderList();
   }
   else if(d.t==="clear"&&contacts[k]){
     msgs[k] = []; ss("ac_m_"+me.id,msgs);
     clearMediaByPrefix("audio_"); clearMediaByPrefix("img_"); 
     if(cur===k)renderMsgs();
+    renderList();
   }
 }
 const on=k=>!!(conns[k]&&conns[k].open);
+
+// --- LOGIKA UNTUK BADGE UNREAD ---
+function getUnreadCount(k) {
+  // Pesan yang f=0 (dari teman) dan statusnya bukan "read"
+  return (msgs[k]||[]).filter(m => m.f === 0 && m.status !== "read").length;
+}
+// ---------------------------------
+
 function renderList(){
   const box=$("#list");box.textContent="";
   const searchQ = ($("#search").value || "").toLowerCase().trim();
@@ -597,9 +616,24 @@ function renderList(){
     if((c.hidden && !searchQ) || (!c.hidden && !matchSearch) || (c.hidden && !matchSearch)) return; 
     count++;
     const el=document.createElement("div");el.className="it"+(cur===k?" on":"");
+    
     const nameSpan = document.createElement("span"); nameSpan.className = "name";
     nameSpan.textContent = c.name+(c.hidden?" [Hidden]":"");
-    const nameWrapper = document.createElement("div"); nameWrapper.style.display = "flex"; nameWrapper.style.alignItems = "center"; nameWrapper.appendChild(nameSpan);
+    
+    // Badge Unread
+    const unread = getUnreadCount(k);
+    const badge = document.createElement("span");
+    badge.className = "unread-badge";
+    if (unread > 0 && cur !== k) { // Hanya tampilkan jika bukan ruangan aktif
+      badge.textContent = unread > 99 ? "99+" : unread;
+    }
+    
+    const nameWrapper = document.createElement("div"); 
+    nameWrapper.style.display = "flex"; 
+    nameWrapper.style.alignItems = "center"; 
+    nameWrapper.appendChild(nameSpan);
+    if (badge.textContent !== "") nameWrapper.appendChild(badge);
+    
     const btnHide = document.createElement("button"); btnHide.className = "btn-hide"; btnHide.innerHTML = "✖";
     btnHide.onclick = (e) => {
       e.stopPropagation();
