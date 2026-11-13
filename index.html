@@ -15,6 +15,7 @@
   --font-bold: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --bubble-me: #ff9500; --bubble-them: #ffffff; --on-bubble-me: #ffffff; --on-bubble-them: #000000;
+  --quote-bg: rgba(0,0,0,0.08); --quote-tx: #555;
 }
 
 body.dark-theme {
@@ -26,6 +27,7 @@ body.dark-theme {
   --font-title: 'Playfair Display', Georgia, serif; --font-bold: 'Playfair Display', Georgia, serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --bubble-me: #e5c158; --bubble-them: #1c1c1e; --on-bubble-me: #000000; --on-bubble-them: #f5f5f5;
+  --quote-bg: rgba(255,255,255,0.1); --quote-tx: #bbb;
 }
 
 * { box-sizing: border-box; -webkit-font-smoothing: antialiased; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
@@ -53,7 +55,7 @@ h1 { margin: 0 0 8px; font-family: var(--font-title); font-size: 32px; font-weig
 .tabs button:not(.g) { background: var(--bg-card); color: var(--accent); box-shadow: var(--shadow-sm); }
 #msg { min-height: 22px; margin: 8px 0; font-size: 13px; color: #ff453a; font-weight: 600; }
 
-/* --- LAYOUT UTAMA (LAPTOP) --- */
+/* --- LAYOUT UTAMA --- */
 #chat { display: flex; height: 100%; padding: 16px; gap: 16px; transition: padding-top 0.3s ease; }
 body.has-alert #chat { padding-top: 64px; }
 
@@ -105,6 +107,18 @@ body.has-alert #chat { padding-top: 64px; }
 .read-status.sending { color: rgba(255,255,255,0.6); font-size: 10px; }
 .m.me2 .read-status.read { color: #ffffff; } 
 
+/* Gaya untuk Balasan (Quote) */
+.quote-box { background: var(--quote-bg); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; color: var(--quote-tx); display: flex; flex-direction: column; }
+.quote-box b { color: var(--accent); font-size: 12px; margin-bottom: 2px; }
+.quote-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+#reply-preview { padding: 10px 24px; background: var(--bg-hover); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; flex-shrink: 0; border-left: 4px solid var(--accent); }
+#reply-preview-content { flex: 1; overflow: hidden; }
+#reply-preview-title { font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: 2px; }
+#reply-preview-text { font-size: 13px; color: var(--tx-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#reply-close { background: transparent; border: none; color: var(--tx-secondary); font-size: 20px; cursor: pointer; padding: 4px; }
+#reply-close:hover { color: #ff453a; }
+
 #form { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
 #form input { margin: 0; border-radius: 12px; padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--border-color); }
 #form input:focus { border-color: var(--accent); box-shadow: none; }
@@ -155,6 +169,9 @@ body.has-alert #chat { padding-top: 64px; }
   #form input { padding: 12px 14px; font-size: 14px; height: 44px; }
   #form button[type="submit"] { padding: 0 16px; height: 44px; }
   .btn-tool { width: 44px; height: 44px; font-size: 16px; flex-shrink: 0; }
+  
+  /* Geser (Swipe) di HP */
+  .m { touch-action: pan-y; }
 }
 </style></head><body>
 
@@ -226,6 +243,15 @@ body.has-alert #chat { padding-top: 64px; }
 
     <div id="note" class="mu" style="padding:0 24px; text-align:center;"></div>
     
+    <!-- Preview Balasan -->
+    <div id="reply-preview" hidden>
+      <div id="reply-preview-content">
+        <div id="reply-preview-title">Membalas...</div>
+        <div id="reply-preview-text"></div>
+      </div>
+      <button id="reply-close" type="button">✕</button>
+    </div>
+
     <form id="form" hidden>
       <button type="button" id="btnImg" class="btn-tool" title="Kirim Gambar">🖼️</button>
       <button type="button" id="btnMic" class="btn-tool" title="Rekam pesan suara">🎤</button>
@@ -237,6 +263,7 @@ body.has-alert #chat { padding-top: 64px; }
 
 <input type="file" id="fileImg" accept="image/*" hidden>
 <div id="ctxMenu" hidden>
+  <button id="btnReply">Balas</button>
   <button id="btnEdit">Edit Pesan</button>
   <button id="btnDel" class="del">Hapus Pesan</button>
 </div>
@@ -250,6 +277,7 @@ const LIMIT=5*1024*1024;
 const STOR_CHECK_EVERY=20;
 const EDIT_TIME_LIMIT = 15 * 60 * 1000;
 let ctxTarget = null;
+let replyTarget = null; // Menyimpan ID pesan yang dikutip
 
 let mediaRecorder = null;
 let audioChunks = [];
@@ -261,9 +289,32 @@ let isTyping = false;
 let partnerTypingTimeout = null;
 let lastTypingSent = 0;
 
-// --- Variabel Heartbeat ---
 let heartbeatInterval = null;
-let missedPongs = {}; // Menyimpan jumlah pong yang terlewat per kontak
+let missedPongs = {};
+
+// --- Audio Notifikasi (Web Audio API) ---
+let audioCtx;
+function playTing() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime); // Nada Tinggi
+    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+  } catch(e) { console.log("Audio belum diizinkan browser"); }
+}
 
 function applyTheme(isDark) {
   if (isDark) { document.body.classList.add("dark-theme"); localStorage.setItem("ac_theme", "dark"); } 
@@ -371,19 +422,10 @@ function setup(c){
   const hi=()=>c.send({t:"hi",name:me.name});
   c.open?hi():c.on("open",hi);
   c.on("data",d=>handle(c,d));
-  c.on("close",()=>{
-    const k=codeOf(c);
-    if(conns[k]===c){
-      delete conns[k];
-      delete missedPongs[k];
-      renderList();
-      head();
-    }
-  });
+  c.on("close",()=>{const k=codeOf(c);if(conns[k]===c){delete conns[k];delete missedPongs[k];renderList();head();}});
   c.on("error",()=>{});
 }
 
-// --- SISTEM HEARTBEAT ---
 function startHeartbeat() {
   clearInterval(heartbeatInterval);
   heartbeatInterval = setInterval(() => {
@@ -391,11 +433,10 @@ function startHeartbeat() {
       if (conns[k] && conns[k].open) {
         try {
           conns[k].send({t: "ping"});
-          // Jika dalam 5 detik tidak ada balasan (pong), anggap offline
           if (missedPongs[k] === undefined) missedPongs[k] = 0;
           missedPongs[k]++;
           
-          if (missedPongs[k] >= 2) { // 2 kali terlewat (6 detik)
+          if (missedPongs[k] >= 2) {
             conns[k].close();
             delete conns[k];
             delete missedPongs[k];
@@ -404,7 +445,6 @@ function startHeartbeat() {
           } else {
             setTimeout(() => {
               if (conns[k] && missedPongs[k] > 0) {
-                // Jika masih ada di conns, berarti pong belum diterima
                 if (missedPongs[k] >= 2) {
                    conns[k].close();
                    delete conns[k];
@@ -412,29 +452,28 @@ function startHeartbeat() {
                    head();
                 }
               }
-            }, 3000); // Cek setelah 3 detik
+            }, 3000);
           }
         } catch(e) { console.log("Ping error", e); }
       }
     });
   }, 3000);
 }
-// -------------------------
 
 function flushQueue(k) {
   if (!on(k)) return;
   let changed = false;
   (msgs[k]||[]).forEach(m => {
     if (m.f === 1 && m.status === "queued") {
-      if (m.type === "text") conns[k].send({t:"msg", id:m.id, text:m.x});
+      if (m.type === "text") conns[k].send({t:"msg", id:m.id, text:m.x, q:m.q});
       else if (m.type === "img") {
         getMedia("img_"+m.id).then(blob => {
-          if(blob) blobToBase64(blob).then(b64 => conns[k].send({t:"img", id:m.id, base64:b64}));
+          if(blob) blobToBase64(blob).then(b64 => conns[k].send({t:"img", id:m.id, base64:b64, q:m.q}));
         });
       }
       else if (m.type === "audio") {
         getMedia("audio_"+m.id).then(blob => {
-          if(blob) blobToBase64(blob).then(b64 => conns[k].send({t:"audio", id:m.id, dur:m.x, base64:b64}));
+          if(blob) blobToBase64(blob).then(b64 => conns[k].send({t:"audio", id:m.id, dur:m.x, base64:b64, q:m.q}));
         });
       }
       m.status = "sent";
@@ -448,15 +487,8 @@ async function handle(c,d){
   if(!d||typeof d!=="object")return;
   const k=codeOf(c);if(!k||k===me.code)return;
   
-  // Respon Heartbeat
-  if(d.t==="ping"){
-    if(c.open) c.send({t:"pong"});
-    return;
-  }
-  if(d.t==="pong"){
-    missedPongs[k] = 0; // Reset hitungan jika dibalas
-    return;
-  }
+  if(d.t==="ping"){ if(c.open) c.send({t:"pong"}); return; }
+  if(d.t==="pong"){ missedPongs[k] = 0; return; }
 
   if(d.t==="hi"&&typeof d.name==="string"){
     const nm=d.name.replace(/[^A-Za-z0-9_]/g,"").slice(0,20)||"Teman";
@@ -475,7 +507,6 @@ async function handle(c,d){
     if(cur === k) {
       $("#peer-status").textContent = "sedang mengetik...";
       $("#peer-status").classList.add("typing");
-      
       clearTimeout(partnerTypingTimeout);
       partnerTypingTimeout = setTimeout(()=>{ 
         const isOn = on(cur);
@@ -498,9 +529,13 @@ async function handle(c,d){
       const isOn = on(cur);
       $("#peer-status").textContent = isOn ? "• Online" : "• Offline";
       $("#peer-status").className = isOn ? "online" : "";
+    } else {
+      playTing(); // Bunyikan notifikasi jika tidak sedang di room
     }
 
     const newMsg = {id:d.id, f:0, t:Date.now()};
+    if(d.q) newMsg.q = d.q;
+
     if (d.t === "msg") { newMsg.x = d.text; newMsg.type = "text"; }
     else if (d.t === "audio") { newMsg.x = d.dur; newMsg.type = "audio"; try { await saveMedia("audio_"+d.id, base64ToBlob(d.base64)); } catch(e) {} }
     else if (d.t === "img") { newMsg.type = "img"; try { await saveMedia("img_"+d.id, base64ToBlob(d.base64)); } catch(e) {} }
@@ -573,6 +608,7 @@ function openChat(k){
   cur=k;$("#form").hidden=false;$("#chat").classList.add("open");$("#note").textContent="";
   connect(k);head();renderMsgs();renderList();
   $("#btnDelAll").style.display = "block";
+  closeReply(); // Tutup reply saat ganti room
   
   if(on(k)) {
     flushQueue(k);
@@ -590,6 +626,16 @@ async function renderMsgs(){
   for (const m of a) {
     const el=document.createElement("div");el.className="m"+(m.f?" me2":"");
     if(m.f) { el.dataset.id = m.id; el.dataset.time = m.t; el.dataset.type = m.type || "text"; }
+    else { el.dataset.id = m.id; el.dataset.time = m.t; el.dataset.type = m.type || "text"; } // Agar bisa di-reply
+
+    // Render Quote jika ada
+    if (m.q) {
+      const qBox = document.createElement("div");
+      qBox.className = "quote-box";
+      const qName = m.q.f === 1 ? me.name : contacts[cur].name;
+      qBox.innerHTML = `<b>${qName}</b><span>${m.q.text}</span>`;
+      el.appendChild(qBox);
+    }
     
     if (m.type === "audio") {
       const aDiv = document.createElement("div"); aDiv.className = "audio-container";
@@ -645,20 +691,88 @@ async function renderMsgs(){
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-$("#msgs").onclick=(e)=>{
-  const m = e.target.closest(".m.me2");
+// --- LOGIKA SWIPE & KLIK KANAN UNTUK REPLY ---
+let touchStartX = 0;
+let touchCurrentEl = null;
+
+document.getElementById('msgs').addEventListener('touchstart', e => {
+  const m = e.target.closest('.m');
   if(!m) return;
-  const id = m.dataset.id, time = parseInt(m.dataset.time), type = m.dataset.type;
-  if(Date.now() - time > EDIT_TIME_LIMIT) return alert("Pesan sudah lebih dari 15 menit.");
+  touchStartX = e.touches[0].clientX;
+  touchCurrentEl = m;
+  m.style.transition = 'none';
+});
+
+document.getElementById('msgs').addEventListener('touchmove', e => {
+  if(!touchCurrentEl) return;
+  const deltaX = e.touches[0].clientX - touchStartX;
+  if (deltaX > 0 && deltaX < 100) {
+    touchCurrentEl.style.transform = `translateX(${deltaX}px)`;
+  }
+});
+
+document.getElementById('msgs').addEventListener('touchend', e => {
+  if(!touchCurrentEl) return;
+  const deltaX = e.changedTouches[0].clientX - touchStartX;
+  touchCurrentEl.style.transition = 'transform 0.2s ease';
+  touchCurrentEl.style.transform = 'translateX(0)';
   
+  if (deltaX > 60) { // Ambang batas swipe
+    const id = touchCurrentEl.dataset.id;
+    const m = (msgs[cur]||[]).find(x => x.id === id);
+    if(m) setReply(m);
+  }
+  touchCurrentEl = null;
+});
+
+$("#msgs").oncontextmenu = (e) => {
+  const m = e.target.closest(".m");
+  if(!m) return;
+  e.preventDefault(); // Cegah menu klik kanan bawaan browser
+  
+  const id = m.dataset.id;
+  const time = parseInt(m.dataset.time);
+  const type = m.dataset.type;
+  const msgData = (msgs[cur]||[]).find(x=>x.id === id);
+  if(!msgData) return;
+
   ctxTarget = id;
   const rect = m.getBoundingClientRect();
   const menu = $("#ctxMenu"); menu.hidden = false;
   menu.style.left = Math.min(rect.left, window.innerWidth - 160) + "px";
   menu.style.top = (rect.bottom + 5) + "px";
-  $("#btnEdit").hidden = (type !== "text");
+  
+  // Aturan Tampilan Menu
+  $("#btnEdit").hidden = (msgData.f !== 1 || type !== "text" || Date.now() - time > EDIT_TIME_LIMIT);
+  $("#btnDel").hidden = (msgData.f !== 1 || Date.now() - time > EDIT_TIME_LIMIT);
 };
-document.addEventListener("click", (e)=>{ if(!e.target.closest("#ctxMenu") && !e.target.closest(".m.me2")) $("#ctxMenu").hidden = true; });
+// ----------------------------------------------
+
+function setReply(m) {
+  replyTarget = m;
+  const qName = m.f === 1 ? me.name : contacts[cur].name;
+  let txt = m.x || "Pesan Media";
+  if(m.type === "img") txt = "📷 Foto";
+  if(m.type === "audio") txt = "🎤 Pesan Suara";
+  
+  $("#reply-preview-title").textContent = "Membalas " + qName;
+  $("#reply-preview-text").textContent = txt;
+  $("#reply-preview").hidden = false;
+  $("#t").focus();
+}
+
+function closeReply() {
+  replyTarget = null;
+  $("#reply-preview").hidden = true;
+}
+
+$("#reply-close").onclick = closeReply;
+
+$("#btnReply").onclick = () => {
+  $("#ctxMenu").hidden = true; if(!ctxTarget) return;
+  const m = (msgs[cur]||[]).find(x=>x.id === ctxTarget);
+  if(m) setReply(m);
+};
 
 $("#btnEdit").onclick=()=>{
   $("#ctxMenu").hidden = true; if(!ctxTarget) return;
@@ -688,7 +802,7 @@ $("#btnDelAll").onclick=async ()=>{
   renderMsgs(); if(on(cur)) conns[cur].send({t:"clear"});
 };
 
-$("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true;};
+$("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true; closeReply();};
 
 $("#btnImg").onclick = () => { if(cur) $("#fileImg").click(); };
 $("#fileImg").onchange = async (e) => {
@@ -698,14 +812,17 @@ $("#fileImg").onchange = async (e) => {
     const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
     await saveMedia("img_"+id, compressedBlob);
     
+    let qData = null;
+    if(replyTarget) qData = {f: replyTarget.f, text: replyTarget.type==='img'?'📷 Foto':replyTarget.type==='audio'?'🎤 Suara':replyTarget.x};
+
     if (on(cur)) {
       const base64Data = await blobToBase64(compressedBlob);
-      conns[cur].send({t:"img", id:id, base64:base64Data});
-      (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,t:Date.now(),type:"img",status:"sent"});
+      conns[cur].send({t:"img", id:id, base64:base64Data, q:qData});
+      (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,t:Date.now(),type:"img",status:"sent",q:qData});
     } else {
-      (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,t:Date.now(),type:"img",status:"queued"});
+      (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,t:Date.now(),type:"img",status:"queued",q:qData});
     }
-    ss("ac_m_"+me.id,msgs); renderMsgs();
+    ss("ac_m_"+me.id,msgs); renderMsgs(); closeReply();
   } catch(err) { alert("Gagal memproses gambar."); }
   $("#fileImg").value = ""; 
 };
@@ -726,14 +843,17 @@ $("#btnMic").onclick = async () => {
       const durStr = formatTime(duration); const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
       try { await saveMedia("audio_"+id, audioBlob); } catch(e) { alert("Gagal simpan audio."); isProcessingAudio = false; return; }
       
+      let qData = null;
+      if(replyTarget) qData = {f: replyTarget.f, text: replyTarget.type==='img'?'📷 Foto':replyTarget.type==='audio'?'🎤 Suara':replyTarget.x};
+
       if (on(cur)) {
         const base64Data = await blobToBase64(audioBlob);
-        conns[cur].send({t:"audio", id:id, dur:durStr, base64:base64Data});
-        (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio",status:"sent"});
+        conns[cur].send({t:"audio", id:id, dur:durStr, base64:base64Data, q:qData});
+        (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio",status:"sent",q:qData});
       } else {
-        (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio",status:"queued"});
+        (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:durStr,t:Date.now(),type:"audio",status:"queued",q:qData});
       }
-      ss("ac_m_"+me.id,msgs); renderMsgs();
+      ss("ac_m_"+me.id,msgs); renderMsgs(); closeReply();
       isProcessingAudio = false; stream.getTracks().forEach(t => t.stop());
     };
     mediaRecorder.start(); isRecording = true;
@@ -770,15 +890,19 @@ $("#form").onsubmit=e=>{e.preventDefault();
   const id = Date.now().toString(36) + Math.random().toString(36).substring(2,6);
   const isActuallyOnline = on(cur);
   
+  let qData = null;
+  if(replyTarget) qData = {f: replyTarget.f, text: replyTarget.type==='img'?'📷 Foto':replyTarget.type==='audio'?'🎤 Suara':replyTarget.x};
+
   if (isActuallyOnline) {
-    try { conns[cur].send({t:"msg",id:id,text:t}); } catch(err) {}
-    (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text",status:"sent"});
+    try { conns[cur].send({t:"msg",id:id,text:t,q:qData}); } catch(err) {}
+    (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text",status:"sent",q:qData});
   } else {
-    (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text",status:"queued"});
+    (msgs[cur]=msgs[cur]||[]).push({id:id,f:1,x:t,t:Date.now(),type:"text",status:"queued",q:qData});
   }
   
   ss("ac_m_"+me.id,msgs);renderMsgs();
   isTyping = false; 
+  closeReply();
   checkStorage(false);
 };
 
@@ -806,7 +930,7 @@ $("#storLater").onclick=()=>{storDismissed=true;storCountdown=0;showStorBar()};
 
 $("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
   if(peer)peer.destroy();peer=null;me=cur=null;conns={};
-  clearInterval(heartbeatInterval); // Matikan heartbeat
+  clearInterval(heartbeatInterval);
   $("#chat").hidden=true;$("#auth").hidden=false;$("#chat").classList.remove("open");
   $("#form").hidden=true;$("#peer-name").textContent="Pilih percakapan";$("#peer-status").textContent="";$("#msgs").textContent="";$("#u").value="";$("#c").value="";$("#p").value="";$("#p2").value="";say("");
   document.body.classList.remove("has-alert");$("#storbar").hidden=true;};
