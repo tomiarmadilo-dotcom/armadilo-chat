@@ -15,7 +15,7 @@
   --font-bold: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --bubble-me: #ff9500; --bubble-them: #ffffff; --on-bubble-me: #ffffff; --on-bubble-them: #000000;
-  --quote-bg: rgba(0,0,0,0.08); --quote-tx: #555;
+  --quote-bg: rgba(0,0,0,0.05); --quote-tx: #555;
 }
 
 body.dark-theme {
@@ -107,10 +107,14 @@ body.has-alert #chat { padding-top: 64px; }
 .read-status.sending { color: rgba(255,255,255,0.6); font-size: 10px; }
 .m.me2 .read-status.read { color: #ffffff; } 
 
-/* Gaya untuk Balasan (Quote) */
-.quote-box { background: var(--quote-bg); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; color: var(--quote-tx); display: flex; flex-direction: column; }
-.quote-box b { color: var(--accent); font-size: 12px; margin-bottom: 2px; }
+/* Gaya untuk Balasan (Quote) yang Kontras */
+.quote-box { background: var(--quote-bg); border-left: 3px solid var(--tx-secondary); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; color: var(--quote-tx); display: flex; flex-direction: column; }
+.quote-box b { font-size: 12px; margin-bottom: 2px; }
 .quote-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* Warna Quote khusus di dalam pesan kita sendiri (Oranye/Emas) */
+.m.me2 .quote-box { background: rgba(0,0,0,0.15); color: #fff; border-left-color: #fff; }
+.m.me2 .quote-box b { color: #fff; }
 
 #reply-preview { padding: 10px 24px; background: var(--bg-hover); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; flex-shrink: 0; border-left: 4px solid var(--accent); }
 #reply-preview-content { flex: 1; overflow: hidden; }
@@ -170,7 +174,6 @@ body.has-alert #chat { padding-top: 64px; }
   #form button[type="submit"] { padding: 0 16px; height: 44px; }
   .btn-tool { width: 44px; height: 44px; font-size: 16px; flex-shrink: 0; }
   
-  /* Geser (Swipe) di HP */
   .m { touch-action: pan-y; }
 }
 </style></head><body>
@@ -243,7 +246,6 @@ body.has-alert #chat { padding-top: 64px; }
 
     <div id="note" class="mu" style="padding:0 24px; text-align:center;"></div>
     
-    <!-- Preview Balasan -->
     <div id="reply-preview" hidden>
       <div id="reply-preview-content">
         <div id="reply-preview-title">Membalas...</div>
@@ -277,7 +279,7 @@ const LIMIT=5*1024*1024;
 const STOR_CHECK_EVERY=20;
 const EDIT_TIME_LIMIT = 15 * 60 * 1000;
 let ctxTarget = null;
-let replyTarget = null; // Menyimpan ID pesan yang dikutip
+let replyTarget = null;
 
 let mediaRecorder = null;
 let audioChunks = [];
@@ -292,28 +294,19 @@ let lastTypingSent = 0;
 let heartbeatInterval = null;
 let missedPongs = {};
 
-// --- Audio Notifikasi (Web Audio API) ---
 let audioCtx;
 function playTing() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, audioCtx.currentTime); // Nada Tinggi
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-    
     gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-    
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
-  } catch(e) { console.log("Audio belum diizinkan browser"); }
+    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+  } catch(e) {}
 }
 
 function applyTheme(isDark) {
@@ -435,26 +428,16 @@ function startHeartbeat() {
           conns[k].send({t: "ping"});
           if (missedPongs[k] === undefined) missedPongs[k] = 0;
           missedPongs[k]++;
-          
           if (missedPongs[k] >= 2) {
-            conns[k].close();
-            delete conns[k];
-            delete missedPongs[k];
-            renderList();
-            head();
+            conns[k].close(); delete conns[k]; delete missedPongs[k]; renderList(); head();
           } else {
             setTimeout(() => {
               if (conns[k] && missedPongs[k] > 0) {
-                if (missedPongs[k] >= 2) {
-                   conns[k].close();
-                   delete conns[k];
-                   renderList();
-                   head();
-                }
+                if (missedPongs[k] >= 2) { conns[k].close(); delete conns[k]; renderList(); head(); }
               }
             }, 3000);
           }
-        } catch(e) { console.log("Ping error", e); }
+        } catch(e) {}
       }
     });
   }, 3000);
@@ -498,9 +481,7 @@ async function handle(c,d){
     ss("ac_c_"+me.id,contacts);
     if(pend===k){pend=null;$("#fm").textContent="";openChat(k)}
     renderList();head();
-    
     flushQueue(k);
-
     if(cur === k) conns[k].send({t:"read", ids: (msgs[k]||[]).filter(m=>m.f===0).map(m=>m.id)});
   }
   else if(d.t==="typing" && contacts[k]){
@@ -524,18 +505,16 @@ async function handle(c,d){
   }
   else if((d.t==="msg"||d.t==="audio"||d.t==="img")&&contacts[k]){
     if(contacts[k].hidden){ contacts[k].hidden=false; ss("ac_c_"+me.id,contacts); renderList(); }
-    
     if(cur === k) {
       const isOn = on(cur);
       $("#peer-status").textContent = isOn ? "• Online" : "• Offline";
       $("#peer-status").className = isOn ? "online" : "";
     } else {
-      playTing(); // Bunyikan notifikasi jika tidak sedang di room
+      playTing();
     }
 
     const newMsg = {id:d.id, f:0, t:Date.now()};
     if(d.q) newMsg.q = d.q;
-
     if (d.t === "msg") { newMsg.x = d.text; newMsg.type = "text"; }
     else if (d.t === "audio") { newMsg.x = d.dur; newMsg.type = "audio"; try { await saveMedia("audio_"+d.id, base64ToBlob(d.base64)); } catch(e) {} }
     else if (d.t === "img") { newMsg.type = "img"; try { await saveMedia("img_"+d.id, base64ToBlob(d.base64)); } catch(e) {} }
@@ -608,7 +587,7 @@ function openChat(k){
   cur=k;$("#form").hidden=false;$("#chat").classList.add("open");$("#note").textContent="";
   connect(k);head();renderMsgs();renderList();
   $("#btnDelAll").style.display = "block";
-  closeReply(); // Tutup reply saat ganti room
+  closeReply();
   
   if(on(k)) {
     flushQueue(k);
@@ -626,9 +605,8 @@ async function renderMsgs(){
   for (const m of a) {
     const el=document.createElement("div");el.className="m"+(m.f?" me2":"");
     if(m.f) { el.dataset.id = m.id; el.dataset.time = m.t; el.dataset.type = m.type || "text"; }
-    else { el.dataset.id = m.id; el.dataset.time = m.t; el.dataset.type = m.type || "text"; } // Agar bisa di-reply
+    else { el.dataset.id = m.id; el.dataset.time = m.t; el.dataset.type = m.type || "text"; }
 
-    // Render Quote jika ada
     if (m.q) {
       const qBox = document.createElement("div");
       qBox.className = "quote-box";
@@ -691,7 +669,6 @@ async function renderMsgs(){
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// --- LOGIKA SWIPE & KLIK KANAN UNTUK REPLY ---
 let touchStartX = 0;
 let touchCurrentEl = null;
 
@@ -717,7 +694,7 @@ document.getElementById('msgs').addEventListener('touchend', e => {
   touchCurrentEl.style.transition = 'transform 0.2s ease';
   touchCurrentEl.style.transform = 'translateX(0)';
   
-  if (deltaX > 60) { // Ambang batas swipe
+  if (deltaX > 60) {
     const id = touchCurrentEl.dataset.id;
     const m = (msgs[cur]||[]).find(x => x.id === id);
     if(m) setReply(m);
@@ -728,7 +705,7 @@ document.getElementById('msgs').addEventListener('touchend', e => {
 $("#msgs").oncontextmenu = (e) => {
   const m = e.target.closest(".m");
   if(!m) return;
-  e.preventDefault(); // Cegah menu klik kanan bawaan browser
+  e.preventDefault();
   
   const id = m.dataset.id;
   const time = parseInt(m.dataset.time);
@@ -742,11 +719,17 @@ $("#msgs").oncontextmenu = (e) => {
   menu.style.left = Math.min(rect.left, window.innerWidth - 160) + "px";
   menu.style.top = (rect.bottom + 5) + "px";
   
-  // Aturan Tampilan Menu
   $("#btnEdit").hidden = (msgData.f !== 1 || type !== "text" || Date.now() - time > EDIT_TIME_LIMIT);
   $("#btnDel").hidden = (msgData.f !== 1 || Date.now() - time > EDIT_TIME_LIMIT);
 };
-// ----------------------------------------------
+
+// PENUTUP MENU SAAT KLIK DI LUAR
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest("#ctxMenu") && !e.target.closest(".m")) {
+    $("#ctxMenu").hidden = true;
+  }
+});
+// ----------------------------
 
 function setReply(m) {
   replyTarget = m;
@@ -864,14 +847,12 @@ $("#btnMic").onclick = async () => {
 
 $("#t").addEventListener("input", () => {
   if (!cur || !on(cur)) return;
-  
   const now = Date.now();
   if (!isTyping || (now - lastTypingSent > 1500)) {
     isTyping = true;
     lastTypingSent = now;
     conns[cur].send({t:"typing"});
   }
-  
   clearTimeout(myTypingTimeout);
   myTypingTimeout = setTimeout(() => { isTyping = false; }, 2000);
 });
