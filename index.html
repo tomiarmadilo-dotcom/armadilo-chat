@@ -292,9 +292,9 @@ let lastTypingSent = 0;
 let heartbeatInterval = null;
 let missedPongs = {};
 
-// --- Pengaturan Suara ---
+// --- Pengaturan Suara & Audio Unlocker ---
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
-let audioCtx;
+let audioCtx = null;
 
 function updateSoundIcon() {
   $("#btnSoundToggle").textContent = soundEnabled ? "🔔" : "🔕";
@@ -306,27 +306,58 @@ $("#btnSoundToggle").onclick = () => {
   localStorage.setItem("ac_sound", soundEnabled ? "on" : "off");
   updateSoundIcon();
   if (soundEnabled) {
-    // Pancing browser agar mengizinkan audio
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    playTing(); // Bunyikan sekali sebagai konfirmasi
+    unlockAudio();
+    playTing(); 
   }
 };
 
+// Fungsi membangunkan mesin audio
+function unlockAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+// Suara notifikasi "Ting-Ting" (Mirip iPhone, 2 nada bersih)
 function playTing() {
   if (!soundEnabled) return;
   try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    unlockAudio();
+    const now = audioCtx.currentTime;
+    
+    // Nada Pertama (E6)
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(1318.51, now);
+    gain1.gain.setValueAtTime(0, now);
+    gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc1.connect(gain1); gain1.connect(audioCtx.destination);
+    osc1.start(now); osc1.stop(now + 0.2);
+
+    // Nada Kedua (G6) - berbunyi sedikit setelah nada pertama
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1567.98, now + 0.1);
+    gain2.gain.setValueAtTime(0, now + 0.1);
+    gain2.gain.linearRampToValueAtTime(0.3, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc2.connect(gain2); gain2.connect(audioCtx.destination);
+    osc2.start(now + 0.1); osc2.stop(now + 0.3);
+
   } catch(e) {}
 }
+
+// Membangunkan audio pada setiap interaksi pengguna
+document.addEventListener('click', unlockAudio);
+document.addEventListener('keydown', unlockAudio);
+document.addEventListener('touchstart', unlockAudio);
+// ------------------------------------------
 
 function applyTheme(isDark) {
   if (isDark) { document.body.classList.add("dark-theme"); localStorage.setItem("ac_theme", "dark"); } 
