@@ -72,9 +72,10 @@ body.has-alert #chat { padding-top: 64px; }
 .it:hover { border-color: var(--border-color); transform: translateX(2px); }
 .it.on { background: var(--bg-hover); border-color: var(--accent); }
 .it .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-family: var(--font-sans); font-size: 16px; }
-.it .btn-edit, .it .btn-hide { background: transparent; border: none; color: var(--tx-secondary); padding: 6px; border-radius: 50%; font-size: 14px; }
-.it .btn-edit:hover { color: var(--accent); background: var(--bg-hover); }
-.it .btn-hide:hover { color: #ff453a; background: var(--bg-hover); }
+
+/* Ikon Titik Tiga */
+.btn-menu { background: transparent; border: none; color: var(--tx-secondary); padding: 6px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-menu:hover { color: var(--accent); background: var(--bg-hover); }
 
 .unread-badge { 
   background: var(--accent); color: var(--on-accent); 
@@ -139,10 +140,20 @@ body.has-alert #chat { padding-top: 64px; }
 #btnMic.recording { color: #ff453a; border-color: #ff453a; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-#ctxMenu { position: fixed; z-index: 100; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 8px 0; display: flex; flex-direction: column; min-width: 160px; }
-#ctxMenu button { background: transparent; color: var(--tx-primary); text-align: left; padding: 12px 20px; border-radius: 0; font-weight: 500; font-size: 14px; }
-#ctxMenu button:hover { background: var(--bg-hover); color: var(--accent); }
-#ctxMenu button.del { color: #ff453a; }
+/* Menu Melayang (Konteks) */
+#ctxMenu, #contactMenu { 
+  position: fixed; z-index: 100; background: var(--bg-card); 
+  border: 1px solid var(--border-color); border-radius: 12px; 
+  box-shadow: var(--shadow-lg); padding: 8px 0; 
+  display: flex; flex-direction: column; min-width: 160px; 
+}
+#ctxMenu button, #contactMenu button { 
+  background: transparent; color: var(--tx-primary); text-align: left; 
+  padding: 12px 20px; border-radius: 0; font-weight: 500; font-size: 14px; 
+  display: flex; align-items: center; gap: 8px;
+}
+#ctxMenu button:hover, #contactMenu button:hover { background: var(--bg-hover); color: var(--accent); }
+#ctxMenu button.del, #contactMenu button.del { color: #ff453a; }
 
 .audio-container { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.05); padding: 10px 14px; border-radius: 12px; margin-top: 6px; }
 .m.me2 .audio-container { background: rgba(0,0,0,0.1); }
@@ -272,10 +283,18 @@ body.has-alert #chat { padding-top: 64px; }
 </div>
 
 <input type="file" id="fileImg" accept="image/*" hidden>
+
+<!-- Menu Melayang untuk Pesan -->
 <div id="ctxMenu" hidden>
   <button id="btnReply">Balas</button>
   <button id="btnEdit">Edit Pesan</button>
   <button id="btnDel" class="del">Hapus Pesan</button>
+</div>
+
+<!-- Menu Melayang untuk Kontak -->
+<div id="contactMenu" hidden>
+  <button id="btnEditContact">✏️ Edit Nama</button>
+  <button id="btnHideContact" class="del">✖ Hapus Kontak</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -288,6 +307,7 @@ const STOR_CHECK_EVERY=20;
 const EDIT_TIME_LIMIT = 15 * 60 * 1000;
 let ctxTarget = null;
 let replyTarget = null;
+let contactMenuTarget = null;
 
 let mediaRecorder = null;
 let audioChunks = [];
@@ -334,27 +354,19 @@ function playTing() {
   try {
     unlockAudio();
     const now = audioCtx.currentTime;
-    
-    const osc1 = audioCtx.createOscillator();
-    const gain1 = audioCtx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(1318.51, now);
-    gain1.gain.setValueAtTime(0, now);
-    gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
+    const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
+    osc1.type = 'sine'; osc1.frequency.setValueAtTime(1318.51, now);
+    gain1.gain.setValueAtTime(0, now); gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
     gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
     osc1.connect(gain1); gain1.connect(audioCtx.destination);
     osc1.start(now); osc1.stop(now + 0.2);
 
-    const osc2 = audioCtx.createOscillator();
-    const gain2 = audioCtx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1567.98, now + 0.1);
-    gain2.gain.setValueAtTime(0, now + 0.1);
-    gain2.gain.linearRampToValueAtTime(0.3, now + 0.12);
+    const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
+    osc2.type = 'sine'; osc2.frequency.setValueAtTime(1567.98, now + 0.1);
+    gain2.gain.setValueAtTime(0, now + 0.1); gain2.gain.linearRampToValueAtTime(0.3, now + 0.12);
     gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
     osc2.connect(gain2); gain2.connect(audioCtx.destination);
     osc2.start(now + 0.1); osc2.stop(now + 0.3);
-
   } catch(e) {}
 }
 
@@ -527,14 +539,12 @@ async function handle(c,d){
   if(d.t==="pong"){ missedPongs[k] = 0; return; }
 
   if(d.t==="hi"&&typeof d.name==="string"){
-    // Melonggarkan filter nama untuk mengizinkan emoji
     const nm = d.name.trim().slice(0,20) || "Teman"; 
     conns[k]=c; missedPongs[k]=0;
     
-    // Jangan timpa nama jika pengguna sudah mengubah alias
     if(!contacts[k]) contacts[k]={name:nm,hidden:false};
     else { 
-      if(!contacts[k].customName) contacts[k].name=nm; // Hanya update nama asli jika belum di-alias
+      if(!contacts[k].customName) contacts[k].name=nm; 
       contacts[k].hidden=false; 
     }
     
@@ -627,49 +637,33 @@ function renderList(){
     const unread = getUnreadCount(k);
     const badge = document.createElement("span");
     badge.className = "unread-badge";
-    if (unread > 0 && cur !== k) {
-      badge.textContent = unread > 99 ? "99+" : unread;
-    }
+    if (unread > 0 && cur !== k) { badge.textContent = unread > 99 ? "99+" : unread; }
     
     const nameWrapper = document.createElement("div"); 
     nameWrapper.style.display = "flex"; 
     nameWrapper.style.alignItems = "center"; 
+    nameWrapper.style.flex = "1"; // Agar nama mengisi ruang
+    nameWrapper.style.overflow = "hidden";
     nameWrapper.appendChild(nameSpan);
     if (badge.textContent !== "") nameWrapper.appendChild(badge);
     
-    // Tombol Edit Nama
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "btn-edit";
-    btnEdit.innerHTML = "✏️";
-    btnEdit.title = "Ganti Nama Kontak";
-    btnEdit.onclick = (e) => {
+    // Ikon Titik Tiga
+    const btnMenu = document.createElement("button");
+    btnMenu.className = "btn-menu";
+    btnMenu.innerHTML = "⋮";
+    btnMenu.onclick = (e) => {
       e.stopPropagation();
-      const newName = prompt("Masukkan nama panggilan baru (bisa pakai emoji):", c.name);
-      if (newName && newName.trim() !== "") {
-        c.name = newName.trim().slice(0, 30); // Maksimal 30 karakter
-        c.customName = true; // Tandai bahwa ini alias
-        ss("ac_c_"+me.id, contacts);
-        renderList();
-        if(cur === k) head();
-      }
-    };
-
-    const btnHide = document.createElement("button"); btnHide.className = "btn-hide"; btnHide.innerHTML = "✖";
-    btnHide.onclick = (e) => {
-      e.stopPropagation();
-      if(confirm("Sembunyikan kontak ini?")){
-        c.hidden = true; ss("ac_c_"+me.id,contacts);
-        if(cur===k) { cur=null; $("#chat").classList.remove("open"); }
-        renderList();
-      }
+      contactMenuTarget = k;
+      const rect = btnMenu.getBoundingClientRect();
+      const menu = $("#contactMenu"); 
+      menu.hidden = false;
+      
+      // Posisikan menu
+      menu.style.left = Math.min(rect.left, window.innerWidth - 180) + "px";
+      menu.style.top = (rect.bottom + 5) + "px";
     };
     
-    const actionWrapper = document.createElement("div");
-    actionWrapper.style.display = "flex";
-    actionWrapper.appendChild(btnEdit);
-    actionWrapper.appendChild(btnHide);
-    
-    el.appendChild(nameWrapper); el.appendChild(actionWrapper); el.onclick=()=>openChat(k);
+    el.appendChild(nameWrapper); el.appendChild(btnMenu); el.onclick=()=>openChat(k);
     box.appendChild(el);
   });
   if(count === 0){
@@ -716,7 +710,6 @@ async function renderMsgs(){
     if (m.q) {
       const qBox = document.createElement("div");
       qBox.className = "quote-box";
-      // Gunakan nama alias jika ada
       const qName = m.q.f === 1 ? me.name : contacts[cur].name;
       qBox.innerHTML = `<b>${qName}</b><span>${m.q.text}</span>`;
       el.appendChild(qBox);
@@ -830,9 +823,13 @@ $("#msgs").oncontextmenu = (e) => {
   $("#btnDel").hidden = (msgData.f !== 1 || Date.now() - time > EDIT_TIME_LIMIT);
 };
 
+// Deteksi klik di luar untuk menutup semua menu
 document.addEventListener("click", (e)=>{
   if(!e.target.closest("#ctxMenu") && !e.target.closest(".m")) {
     $("#ctxMenu").hidden = true;
+  }
+  if(!e.target.closest("#contactMenu") && !e.target.closest(".btn-menu")) {
+    $("#contactMenu").hidden = true;
   }
 });
 
@@ -889,6 +886,37 @@ $("#btnDelAll").onclick=async ()=>{
   await clearMediaByPrefix("audio_"); await clearMediaByPrefix("img_");
   renderMsgs(); if(on(cur)) conns[cur].send({t:"clear"});
 };
+
+// --- MENU KONTAK TITIK TIGA ---
+$("#btnEditContact").onclick = () => {
+  $("#contactMenu").hidden = true;
+  if(!contactMenuTarget) return;
+  const c = contacts[contactMenuTarget];
+  if(!c) return;
+
+  const newName = prompt("Masukkan nama panggilan baru (bisa pakai emoji):", c.name);
+  if (newName && newName.trim() !== "") {
+    c.name = newName.trim().slice(0, 30);
+    c.customName = true;
+    ss("ac_c_"+me.id, contacts);
+    renderList();
+    if(cur === contactMenuTarget) head();
+  }
+  contactMenuTarget = null;
+};
+
+$("#btnHideContact").onclick = () => {
+  $("#contactMenu").hidden = true;
+  if(!contactMenuTarget) return;
+  if(confirm("Sembunyikan kontak ini?")){
+    contacts[contactMenuTarget].hidden = true;
+    ss("ac_c_"+me.id, contacts);
+    if(cur === contactMenuTarget) { cur=null; $("#chat").classList.remove("open"); }
+    renderList();
+  }
+  contactMenuTarget = null;
+};
+// ------------------------------
 
 $("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true; closeReply();};
 
