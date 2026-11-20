@@ -431,7 +431,6 @@ let missedPongs = {};
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
 let audioCtx = null;
 
-// Variabel untuk menangani Retry
 let peerRetryTimer = null;
 
 // --- LOGIKA WALLPAPER ---
@@ -1352,4 +1351,10 @@ $("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
 
 const s=gs("ac_session",null);
 if(s&&users[s.u])start(s.u);
+
+// --- MENDAFTARKAN EVENT LISTENER DI AKHIR AGAR ELEMEN SUDAH SIAP ---
+$("#invite-header").onclick = () => {
+  $("#invite-content").classList.toggle("open");
+  $("#invite-arrow").classList.toggle("open");
+};
 </script></body></html>
