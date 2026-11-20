@@ -62,8 +62,24 @@ body.has-alert #chat { padding-top: 64px; }
 #side { width: 320px; display: flex; flex-direction: column; gap: 16px; padding: 24px; background: var(--bg-panel); border-radius: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); z-index: 2; flex-shrink: 0; }
 .me { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); position: relative; overflow: hidden; }
 .me::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
-.code { font-family: var(--font-bold); font-size: 24px; font-weight: 800; letter-spacing: 0.5px; color: var(--accent); margin: 8px 0; word-break: break-all; }
 #who { font-family: var(--font-bold); font-size: 20px; font-weight: 800; color: var(--accent); margin-bottom: 12px; letter-spacing: -0.5px; }
+
+/* Dropdown Invite Code */
+#invite-section { margin-top: 10px; }
+#invite-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+#invite-header .mu { margin: 0; }
+#invite-arrow { transition: transform 0.3s ease; }
+#invite-content { display: none; padding-top: 12px; animation: slideDown 0.3s ease; }
+#invite-content.open { display: block; }
+#invite-arrow.open { transform: rotate(180deg); }
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.code-box { background: var(--bg-main); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); }
+.code-box .code-text { font-family: var(--font-bold); font-size: 15px; font-weight: 700; color: var(--accent); word-break: break-all; }
+.code-box button { padding: 6px 10px; font-size: 12px; border-radius: 6px; background: var(--surface); color: var(--tx-primary); border: 1px solid var(--border-color); }
+.code-box button:hover { background: var(--bg-hover); }
+
 .row { display: flex; gap: 8px; align-items: center; }
 #list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-right: 4px; }
 #list::-webkit-scrollbar { width: 4px; }
@@ -228,17 +244,29 @@ body.has-alert #chat { padding-top: 64px; }
       <div class="mu">WELCOME,</div>
       <div id="who"></div>
       
-      <div class="mu" style="font-size:11px; margin-top:8px;">KODE UNDANGAN AKTIF</div>
-      <div class="code" id="code-active"></div>
-      
-      <div id="code-backup-wrapper" style="margin-top:8px;">
-        <div class="mu" style="font-size:10px; opacity:0.7;">KODE CADANGAN</div>
-        <div style="font-family:var(--font-bold); font-size:14px; color:var(--accent); word-break:break-all;" id="code-backup"></div>
+      <!-- Dropdown Kode Undangan -->
+      <div id="invite-section">
+        <div id="invite-header">
+          <span class="mu" style="font-size:11px; font-weight:600;">INVITE CODE</span>
+          <span id="invite-arrow" style="font-size:12px; color:var(--tx-secondary);">▼</span>
+        </div>
+        <div id="invite-content">
+          <div class="mu" style="font-size:10px; margin-bottom:4px;">Kode Aktif</div>
+          <div class="code-box">
+            <span class="code-text" id="code-active"></span>
+            <button id="cp-active" type="button">Salin</button>
+          </div>
+          
+          <div class="mu" style="font-size:10px; margin-bottom:4px; margin-top:8px;">Kode Cadangan</div>
+          <div class="code-box" style="opacity:0.8;">
+            <span class="code-text" id="code-backup"></span>
+            <button id="cp-backup" type="button">Salin</button>
+          </div>
+        </div>
       </div>
 
       <div class="row" style="margin-top:16px;">
-        <button class="g" id="cp" type="button" style="flex:1; font-size:13px; padding:10px;">Salin Kode</button>
-        <button class="g" id="out" type="button" style="flex:1; font-size:13px; padding:10px;">Log Out</button>
+        <button class="g" id="out" type="button" style="width:100%; font-size:13px; padding:10px;">Log Out</button>
       </div>
       <div id="net" class="mu"></div>
     </div>
@@ -328,6 +356,13 @@ let missedPongs = {};
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
 let audioCtx = null;
 
+// --- FITUR DROPDOWN INVITE CODE ---
+$("#invite-header").onclick = () => {
+  $("#invite-content").classList.toggle("open");
+  $("#invite-arrow").classList.toggle("open");
+};
+// ----------------------------------
+
 function updateSoundIcon() { $("#btnSoundToggle").textContent = soundEnabled ? "🔔" : "🔕"; }
 updateSoundIcon();
 
@@ -396,8 +431,11 @@ let users=gs("ac_users",{});
 const say=t=>{$("#msg").textContent=t},net=t=>{$("#net").textContent=t};
 const cleanCode=s=>String(s||"").replace(/[^A-Za-z0-9]/g,"").slice(0,24);
 
+// Generate System Code (9 digit angka)
 function generateSystemCode() {
-  return "ac-" + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 6);
+  let num = "";
+  for(let i=0; i<9; i++) num += Math.floor(Math.random() * 10);
+  return num;
 }
 
 function blobToBase64(blob) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); }); }
@@ -414,7 +452,6 @@ $("#tL").onclick=()=>setMode("L");$("#tR").onclick=()=>setMode("R");
 $("#sh").onchange=e=>{$("#p").type=$("#p2").type=e.target.checked?"text":"password"};
 function findCodeOwner(code,exceptId){ return Object.keys(users).find(k=>k!==exceptId&&users[k].code===code); }
 
-// --- FITUR PENGECEKAN KODE SAAT REGISTER ---
 async function checkCodeAvailability(code) {
   return new Promise((resolve) => {
     const testPeer = new Peer(PFX + code);
@@ -423,19 +460,18 @@ async function checkCodeAvailability(code) {
     testPeer.on('open', () => {
       if(resolved) return;
       resolved = true;
-      testPeer.destroy(); // Kode tersedia, matikan tes
+      testPeer.destroy(); 
       resolve(true);
     });
     
     testPeer.on('error', (err) => {
       if(resolved) return;
       resolved = true;
-      testPeer.destroy(); // Gagal, matikan tes
-      if(err.type === 'unavailable-id') resolve(false); // Kode dipakai
-      else resolve(true); // Anggap true jika error jaringan lain
+      testPeer.destroy(); 
+      if(err.type === 'unavailable-id') resolve(false); 
+      else resolve(true); 
     });
     
-    // Timeout pengaman 5 detik
     setTimeout(() => {
       if(!resolved) {
         resolved = true;
@@ -464,7 +500,6 @@ async function submit(){
     const taken=findCodeOwner(code,null);
     if(taken)return say("Kode undangan sudah dipakai (Lokal).");
     
-    // --- PENGECEKAN JARINGAN ---
     $("#go").disabled = true;
     $("#go").textContent = "Mengecek kode...";
     
@@ -474,8 +509,6 @@ async function submit(){
       $("#go").textContent = "Register";
       return say("Kode undangan ini sudah dipakai orang lain di jaringan. Silakan ganti.");
     }
-    // ----------------------------
-    
   }else{ 
     if(Date.now()<lock)return say("Terlalu banyak percobaan. Tunggu sebentar."); 
   }
@@ -508,18 +541,28 @@ $("#go").onclick=submit;
 
 function start(id){
   ss("ac_session",{u:id});
-  const u=users[id];me={id,name:u.name,code:u.code,backupCode:u.backupCode||u.code,activeCode:u.code};
+  const u=users[id];
+  
+  // --- MIGRASI KODE CADANGAN UNTUK USER LAMA ---
+  let needMigration = false;
+  if(!u.backupCode) needMigration = true; // Belum punya
+  else if(u.backupCode.startsWith("ac-")) needMigration = true; // Format lama
+
+  if (needMigration) {
+    u.backupCode = generateSystemCode();
+    users[id] = u;
+    ss("ac_users", users);
+  }
+  // ---------------------------------------------
+
+  me={id,name:u.name,code:u.code,backupCode:u.backupCode,activeCode:u.code};
   contacts=gs("ac_c_"+id,{});msgs=gs("ac_m_"+id,{});conns={};cur=null;
   $("#auth").hidden=true;$("#chat").hidden=false;$("#who").textContent=u.name.toUpperCase();
   
-  renderCodes();
-  
-  $("#p").value=$("#p2").value="";$("#c").value="";$("#search").value="";renderList();startPeer();checkStorage(true);
-}
-
-function renderCodes() {
   $("#code-active").textContent = me.activeCode;
   $("#code-backup").textContent = me.backupCode;
+  
+  $("#p").value=$("#p2").value="";$("#c").value="";$("#search").value="";renderList();startPeer();checkStorage(true);
 }
 
 function startPeer(){
@@ -543,14 +586,13 @@ function startPeer(){
     if(e.type==="unavailable-id"){ 
       peer.destroy(); 
       if(me.activeCode === me.code) {
-        // Gagal pakai kode custom, coba beralih ke kode sistem
         net("Kode custom bentrok, beralih...");
         me.activeCode = me.backupCode;
-        renderCodes();
+        $("#code-active").textContent = me.activeCode;
+        $("#code-backup").textContent = me.code; // Tukar tampilan
         setTimeout(startPeer, 1000);
       } else {
-        // Gagal pakai kode sistem (sangat jarang)
-        net("Kode cadangan juga bentrok. Ganti akun.");
+        net("Kode cadangan juga bentrok.");
       }
     }
     else if(e.type==="peer-unavailable"){ if(pend){$("#fm").textContent="Kode tidak ditemukan.";pend=null} }
@@ -1108,7 +1150,8 @@ $("#add").onclick=()=>{
   pend=k;f.textContent="Menghubungi...";connect(k);
   setTimeout(()=>{if(pend===k){pend=null;f.textContent="Kode tidak ditemukan."}},8000);
 };
-$("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(me.activeCode);$("#cp").textContent="Tersalin!";setTimeout(()=>$("#cp").textContent="Salin Kode",1500)}catch(e){}};
+$("#cp-active").onclick=async()=>{try{await navigator.clipboard.writeText(me.activeCode);$("#cp-active").textContent="Tersalin!";setTimeout(()=>$("#cp-active").textContent="Salin",1500)}catch(e){}};
+$("#cp-backup").onclick=async()=>{try{await navigator.clipboard.writeText(me.backupCode);$("#cp-backup").textContent="Tersalin!";setTimeout(()=>$("#cp-backup").textContent="Salin",1500)}catch(e){}};
 
 $("#storNow").onclick=async ()=>{
   if(!me || !confirm("Hapus semua percakapan dan media?")) return;
