@@ -285,7 +285,7 @@ body.has-alert #chat { padding-top: 64px; }
     <button id="tR" type="button" class="g">Register</button>
   </div>
   <input id="u" placeholder="Username" autocomplete="username" maxlength="20">
-  <input id="c" placeholder="Invite Code Custom" autocomplete="off" maxlength="24">
+  <input id="c" placeholder="Invite Code Custom" autocomplete="off" maxlength="24" hidden>
   <input id="p" type="password" placeholder="Password" autocomplete="current-password" maxlength="72">
   <input id="p2" type="password" placeholder="Confirm Password" autocomplete="new-password" maxlength="72" hidden>
   <label class="mu" style="display:flex; align-items:center; justify-content:center; gap:8px; margin:16px 0;">
@@ -306,8 +306,8 @@ body.has-alert #chat { padding-top: 64px; }
       
       <div id="invite-section">
         <div id="invite-header">
-          <span class="mu" style="font-size:11px; font-weight:600;">INVITE CODE</span>
-          <span id="invite-arrow" style="font-size:12px; color:var(--tx-secondary);">▼</span>
+          <span class="mu" style="font-size:11px; font-weight:600; pointer-events:none;">INVITE CODE</span>
+          <span id="invite-arrow" style="font-size:12px; color:var(--tx-secondary); pointer-events:none;">▼</span>
         </div>
         <div id="invite-content">
           <div class="mu" style="font-size:10px; margin-bottom:4px;">Kode Aktif</div>
@@ -589,7 +589,7 @@ function storPct(){return Math.min(100,Math.round(usedBytes()/LIMIT*100))}
 function showStorBar(){ const p=storPct(); if(p<90){ $("#storbar").hidden=true; document.body.classList.remove("has-alert"); return; } $("#storpct").textContent=p+"%"; $("#storbar").hidden=false; document.body.classList.add("has-alert"); }
 function checkStorage(force){ if(me&&!force&&storDismissed){ storCountdown++; if(storCountdown<STOR_CHECK_EVERY)return; storCountdown=0;storDismissed=false; } showStorBar(); }
 async function hash(pw,salt){ const k=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]); return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:enc.encode(salt),iterations:200000},k,256)); }
-function setMode(m){mode=m;$("#p2").hidden=m==="L";$("#go").textContent=m==="L"?"Sign In":"Register"; $("#tL").className=m==="L"?"":"g";$("#tR").className=m==="R"?"":"g";say("")}
+function setMode(m){mode=m;$("#p2").hidden=m==="L";$("#c").hidden=m==="L";$("#go").textContent=m==="L"?"Sign In":"Register"; $("#tL").className=m==="L"?"":"g";$("#tR").className=m==="R"?"":"g";say("")}
 $("#tL").onclick=()=>setMode("L");$("#tR").onclick=()=>setMode("R");
 $("#sh").onchange=e=>{$("#p").type=$("#p2").type=e.target.checked?"text":"password"};
 function findCodeOwner(code,exceptId){ return Object.keys(users).find(k=>k!==exceptId&&users[k].code===code); }
@@ -705,13 +705,12 @@ function start(id){
   $("#p").value=$("#p2").value="";$("#c").value="";$("#search").value="";renderList();startPeer();checkStorage(true);
 }
 
-// --- PERBAIKAN LOGIKA KONEKSI & RETRY (STABIL) ---
 function startPeer(){
   if(typeof Peer==="undefined")return net("Pustaka koneksi gagal dimuat.");
   net("Menyambung...");
   clearTimeout(peerRetryTimer);
   
-  if(peer) peer.destroy(); // Hancurkan total koneksi lama
+  if(peer) peer.destroy();
   peer = new Peer(PFX + me.activeCode);
   
   peer.on("open",()=>{
@@ -734,14 +733,12 @@ function startPeer(){
     if(e.type==="unavailable-id"){ 
       peer.destroy(); 
       if(me.activeCode === me.code) {
-        // Kode custom bentrok, beralih ke kode cadangan
         net("Kode custom bentrok, beralih ke cadangan...");
         me.activeCode = me.backupCode;
         $("#code-active").textContent = me.activeCode;
         $("#code-backup").textContent = me.code;
-        peerRetryTimer = setTimeout(startPeer, 2000); // Jeda 2 detik sebelum pindah
+        peerRetryTimer = setTimeout(startPeer, 2000);
       } else {
-        // Kode cadangan juga bentrok (kemungkinan buka di 2 tab)
         net("Koneksi terputus. Mencoba lagi dalam 3 detik...");
         peerRetryTimer = setTimeout(startPeer, 3000); 
       }
@@ -755,7 +752,6 @@ function startPeer(){
     }
   });
 }
-// ------------------------------------------
 
 const codeOf=c=>c.peer.slice(PFX.length);
 function connect(k){if(!peer||!peer.open)return;if(conns[k]&&conns[k].open)return;setup(peer.connect(PFX+k,{reliable:true}))}
