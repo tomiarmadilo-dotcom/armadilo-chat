@@ -72,10 +72,10 @@ body.has-alert #chat { padding-top: 64px; }
 .it:hover { border-color: var(--border-color); transform: translateX(2px); }
 .it.on { background: var(--bg-hover); border-color: var(--accent); }
 .it .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-family: var(--font-sans); font-size: 16px; }
-.it .btn-hide { background: transparent; border: none; color: var(--tx-secondary); padding: 6px; border-radius: 50%; font-size: 14px; }
-.it .btn-hide:hover { color: #ff453a; }
+.it .btn-edit, .it .btn-hide { background: transparent; border: none; color: var(--tx-secondary); padding: 6px; border-radius: 50%; font-size: 14px; }
+.it .btn-edit:hover { color: var(--accent); background: var(--bg-hover); }
+.it .btn-hide:hover { color: #ff453a; background: var(--bg-hover); }
 
-/* --- Gaya Badge Unread --- */
 .unread-badge { 
   background: var(--accent); color: var(--on-accent); 
   font-size: 11px; font-weight: 800; font-family: var(--font-sans);
@@ -527,10 +527,17 @@ async function handle(c,d){
   if(d.t==="pong"){ missedPongs[k] = 0; return; }
 
   if(d.t==="hi"&&typeof d.name==="string"){
-    const nm=d.name.replace(/[^A-Za-z0-9_]/g,"").slice(0,20)||"Teman";
+    // Melonggarkan filter nama untuk mengizinkan emoji
+    const nm = d.name.trim().slice(0,20) || "Teman"; 
     conns[k]=c; missedPongs[k]=0;
+    
+    // Jangan timpa nama jika pengguna sudah mengubah alias
     if(!contacts[k]) contacts[k]={name:nm,hidden:false};
-    else { contacts[k].name=nm; contacts[k].hidden=false; }
+    else { 
+      if(!contacts[k].customName) contacts[k].name=nm; // Hanya update nama asli jika belum di-alias
+      contacts[k].hidden=false; 
+    }
+    
     ss("ac_c_"+me.id,contacts);
     if(pend===k){pend=null;$("#fm").textContent="";openChat(k)}
     renderList();head();
@@ -578,7 +585,7 @@ async function handle(c,d){
       if(on(k)) conns[k].send({t:"read", ids: [d.id]}); 
     }
     checkStorage(false);
-    renderList(); // Segera perbarui daftar kontak untuk menampilkan unread
+    renderList();
   }
   else if(d.t==="edit"&&contacts[k]){
     const list = msgs[k]||[]; const m = list.find(x=>x.id === d.id);
@@ -599,12 +606,9 @@ async function handle(c,d){
 }
 const on=k=>!!(conns[k]&&conns[k].open);
 
-// --- LOGIKA UNTUK BADGE UNREAD ---
 function getUnreadCount(k) {
-  // Pesan yang f=0 (dari teman) dan statusnya bukan "read"
   return (msgs[k]||[]).filter(m => m.f === 0 && m.status !== "read").length;
 }
-// ---------------------------------
 
 function renderList(){
   const box=$("#list");box.textContent="";
@@ -620,11 +624,10 @@ function renderList(){
     const nameSpan = document.createElement("span"); nameSpan.className = "name";
     nameSpan.textContent = c.name+(c.hidden?" [Hidden]":"");
     
-    // Badge Unread
     const unread = getUnreadCount(k);
     const badge = document.createElement("span");
     badge.className = "unread-badge";
-    if (unread > 0 && cur !== k) { // Hanya tampilkan jika bukan ruangan aktif
+    if (unread > 0 && cur !== k) {
       badge.textContent = unread > 99 ? "99+" : unread;
     }
     
@@ -634,6 +637,23 @@ function renderList(){
     nameWrapper.appendChild(nameSpan);
     if (badge.textContent !== "") nameWrapper.appendChild(badge);
     
+    // Tombol Edit Nama
+    const btnEdit = document.createElement("button");
+    btnEdit.className = "btn-edit";
+    btnEdit.innerHTML = "✏️";
+    btnEdit.title = "Ganti Nama Kontak";
+    btnEdit.onclick = (e) => {
+      e.stopPropagation();
+      const newName = prompt("Masukkan nama panggilan baru (bisa pakai emoji):", c.name);
+      if (newName && newName.trim() !== "") {
+        c.name = newName.trim().slice(0, 30); // Maksimal 30 karakter
+        c.customName = true; // Tandai bahwa ini alias
+        ss("ac_c_"+me.id, contacts);
+        renderList();
+        if(cur === k) head();
+      }
+    };
+
     const btnHide = document.createElement("button"); btnHide.className = "btn-hide"; btnHide.innerHTML = "✖";
     btnHide.onclick = (e) => {
       e.stopPropagation();
@@ -643,7 +663,13 @@ function renderList(){
         renderList();
       }
     };
-    el.appendChild(nameWrapper); el.appendChild(btnHide); el.onclick=()=>openChat(k);
+    
+    const actionWrapper = document.createElement("div");
+    actionWrapper.style.display = "flex";
+    actionWrapper.appendChild(btnEdit);
+    actionWrapper.appendChild(btnHide);
+    
+    el.appendChild(nameWrapper); el.appendChild(actionWrapper); el.onclick=()=>openChat(k);
     box.appendChild(el);
   });
   if(count === 0){
@@ -690,6 +716,7 @@ async function renderMsgs(){
     if (m.q) {
       const qBox = document.createElement("div");
       qBox.className = "quote-box";
+      // Gunakan nama alias jika ada
       const qName = m.q.f === 1 ? me.name : contacts[cur].name;
       qBox.innerHTML = `<b>${qName}</b><span>${m.q.text}</span>`;
       el.appendChild(qBox);
