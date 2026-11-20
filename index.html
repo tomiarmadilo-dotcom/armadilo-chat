@@ -431,6 +431,9 @@ let missedPongs = {};
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
 let audioCtx = null;
 
+// Variabel untuk menangani Retry
+let peerRetryTimer = null;
+
 // --- LOGIKA WALLPAPER ---
 let currentWallpaper = localStorage.getItem("ac_wallpaper") || "none";
 
@@ -702,9 +705,11 @@ function start(id){
   $("#p").value=$("#p2").value="";$("#c").value="";$("#search").value="";renderList();startPeer();checkStorage(true);
 }
 
+// --- PERBAIKAN LOGIKA KONEKSI & RETRY ---
 function startPeer(){
   if(typeof Peer==="undefined")return net("Pustaka koneksi gagal dimuat.");
   net("Menyambung...");
+  clearTimeout(peerRetryTimer);
   
   if(peer) peer.destroy();
   peer = new Peer(PFX + me.activeCode);
@@ -717,25 +722,40 @@ function startPeer(){
   });
   
   peer.on("connection",setup);
-  peer.on("disconnected",()=>{if(peer&&!peer.destroyed){net("Terputus...");try{peer.reconnect()}catch(e){}}});
+  
+  peer.on("disconnected",()=>{
+    if(peer && !peer.destroyed){
+      net("Terputus, mencoba menyambung ulang...");
+      try{ peer.reconnect() }catch(e){}
+    }
+  });
   
   peer.on("error",e=>{
     if(e.type==="unavailable-id"){ 
       peer.destroy(); 
       if(me.activeCode === me.code) {
-        net("Kode custom bentrok, beralih...");
+        // Kode custom bentrok, coba beralih ke kode cadangan
+        net("Kode custom bentrok, beralih ke cadangan...");
         me.activeCode = me.backupCode;
         $("#code-active").textContent = me.activeCode;
-        $("#code-backup").textContent = me.code; 
-        setTimeout(startPeer, 1000);
+        $("#code-backup").textContent = me.code;
+        peerRetryTimer = setTimeout(startPeer, 1000);
       } else {
-        net("Kode cadangan juga bentrok.");
+        // Kode cadangan juga bentrok (kemungkinan buka di 2 tab)
+        net("Terputus: Akun ini sedang aktif di tab atau perangkat lain.");
+        peerRetryTimer = setTimeout(startPeer, 5000); // Coba lagi dalam 5 detik
       }
     }
-    else if(e.type==="peer-unavailable"){ if(pend){$("#fm").textContent="Kode tidak ditemukan.";pend=null} }
-    else net("Gangguan koneksi.");
+    else if(e.type==="peer-unavailable"){ 
+      if(pend){$("#fm").textContent="Kode tidak ditemukan.";pend=null} 
+    }
+    else {
+      net("Gangguan koneksi, mencoba lagi...");
+      peerRetryTimer = setTimeout(startPeer, 5000);
+    }
   });
 }
+// ------------------------------------------
 
 const codeOf=c=>c.peer.slice(PFX.length);
 function connect(k){if(!peer||!peer.open)return;if(conns[k]&&conns[k].open)return;setup(peer.connect(PFX+k,{reliable:true}))}
@@ -976,7 +996,6 @@ async function renderMsgs(){
     }
     
     if (m.type === "audio") {
-      // --- DESAIN WAVEFORM SPOTIFY ---
       const aDiv = document.createElement("div"); aDiv.className = "audio-container";
       const btn = document.createElement("button"); btn.className = "audio-play-btn"; btn.innerHTML = "▶";
       
@@ -985,7 +1004,6 @@ async function renderMsgs(){
       for(let i=0; i<25; i++) {
         const bar = document.createElement("div");
         bar.className = "audio-bar";
-        // Tinggi acak untuk efek visual
         bar.style.height = (Math.floor(Math.random() * 16) + 8) + "px";
         waveDiv.appendChild(bar);
         bars.push(bar);
@@ -1331,7 +1349,7 @@ $("#storLater").onclick=()=>{storDismissed=true;storCountdown=0;showStorBar()};
 
 $("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
   if(peer)peer.destroy();peer=null;me=cur=null;conns={};
-  clearInterval(heartbeatInterval);
+  clearInterval(heartbeatInterval); clearTimeout(peerRetryTimer);
   $("#chat").hidden=true;$("#auth").hidden=false;$("#chat").classList.remove("open");
   $("#form").hidden=true;$("#peer-name").textContent="Pilih percakapan";$("#peer-status").textContent="";$("#msgs").textContent="";$("#u").value="";$("#c").value="";$("#p").value="";$("#p2").value="";say("");
   document.body.classList.remove("has-alert");$("#storbar").hidden=true;};
