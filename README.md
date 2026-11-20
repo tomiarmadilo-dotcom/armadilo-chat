@@ -1,5 +1,7 @@
 # Armadilo Chat
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Coba%20Sekarang-orange?style=for-the-badge&logo=github)](https://tomiarmadilo-dotcom.github.io/armadilo-chat/)
+
 **Armadilo Chat** is a lightweight, decentralized, and privacy-first web-based chat application. Built entirely on client-side technologies, it allows you to communicate directly with your peers without relying on a centralized chat server. 
 
 Whether you are looking for a quick way to share updates or a private space to chat away from mainstream platforms, Armadilo Chat provides a seamless, real-time experience straight from your browser.
@@ -21,15 +23,18 @@ Whether you are looking for a quick way to share updates or a private space to c
 *   **Vanilla JavaScript:** Core logic and state management.
 *   **PeerJS (WebRTC):** For real-time, peer-to-peer data transmission.
 *   **Web Crypto API:** For secure password hashing (PBKDF2).
-*   **Local Storage:** For zero-configuration, local data persistence.
+*   **Local Storage & IndexedDB:** For zero-configuration, local data persistence.
 
 ## 🚀 How to Use
 
-1.  **Access the App:** Open Armadilo Chat in your web browser. No installation, no Google account needed.
+1.  **Access the App:** Click the **"Live Demo"** button above to open Armadilo Chat in your web browser. No installation, no Google account needed.
 2.  **Create an Account:** Register with a unique username, a secure password, and your preferred invite code.
 3.  **Connect:** Share your invite code with a friend, or enter their code to start a conversation.
 4.  **Chat Securely:** Enjoy real-time, direct messaging!
 
 ## ⚠️ Disclaimer
 
-Armadilo Chat is a decentralized application. While it uses secure hashing for local accounts, message history and contacts are stored locally on your device using `localStorage`. It is not recommended to store highly sensitive information, as data is tied to the browser and device you are currently using.
+Armadilo Chat is a decentralized application. While it uses secure hashing for local accounts, message history and contacts are stored locally on your device using `localStorage` and `IndexedDB`. It is not recommended to store highly sensitive information, as data is tied to the browser and device you are currently using.
+
+---
+*Created by Bustami Atmadja × DeepSeek*
