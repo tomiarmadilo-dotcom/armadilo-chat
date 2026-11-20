@@ -62,7 +62,7 @@ body.has-alert #chat { padding-top: 64px; }
 #side { width: 320px; display: flex; flex-direction: column; gap: 16px; padding: 24px; background: var(--bg-panel); border-radius: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); z-index: 2; flex-shrink: 0; }
 .me { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); position: relative; overflow: hidden; }
 .me::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
-.code { font-family: var(--font-bold); font-size: 24px; font-weight: 800; letter-spacing: 0.5px; color: var(--accent); margin: 8px 0; }
+.code { font-family: var(--font-bold); font-size: 24px; font-weight: 800; letter-spacing: 0.5px; color: var(--accent); margin: 8px 0; word-break: break-all; }
 #who { font-family: var(--font-bold); font-size: 20px; font-weight: 800; color: var(--accent); margin-bottom: 12px; letter-spacing: -0.5px; }
 .row { display: flex; gap: 8px; align-items: center; }
 #list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-right: 4px; }
@@ -73,7 +73,6 @@ body.has-alert #chat { padding-top: 64px; }
 .it.on { background: var(--bg-hover); border-color: var(--accent); }
 .it .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-family: var(--font-sans); font-size: 16px; }
 
-/* Ikon Titik Tiga */
 .btn-menu { background: transparent; border: none; color: var(--tx-secondary); padding: 6px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .btn-menu:hover { color: var(--accent); background: var(--bg-hover); }
 
@@ -140,7 +139,6 @@ body.has-alert #chat { padding-top: 64px; }
 #btnMic.recording { color: #ff453a; border-color: #ff453a; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-/* Menu Melayang (Konteks) */
 #ctxMenu, #contactMenu { 
   position: fixed; z-index: 100; background: var(--bg-card); 
   border: 1px solid var(--border-color); border-radius: 12px; 
@@ -211,7 +209,7 @@ body.has-alert #chat { padding-top: 64px; }
     <button id="tR" type="button" class="g">Register</button>
   </div>
   <input id="u" placeholder="Username" autocomplete="username" maxlength="20">
-  <input id="c" placeholder="Invite Code" autocomplete="off" maxlength="24">
+  <input id="c" placeholder="Invite Code Custom" autocomplete="off" maxlength="24">
   <input id="p" type="password" placeholder="Password" autocomplete="current-password" maxlength="72">
   <input id="p2" type="password" placeholder="Confirm Password" autocomplete="new-password" maxlength="72" hidden>
   <label class="mu" style="display:flex; align-items:center; justify-content:center; gap:8px; margin:16px 0;">
@@ -229,10 +227,17 @@ body.has-alert #chat { padding-top: 64px; }
     <div class="me">
       <div class="mu">WELCOME,</div>
       <div id="who"></div>
-      <div class="mu" style="font-size:11px;">INVITE CODE</div>
-      <div class="code" id="code"></div>
+      
+      <div class="mu" style="font-size:11px; margin-top:8px;">KODE UNDANGAN AKTIF</div>
+      <div class="code" id="code-active"></div>
+      
+      <div id="code-backup-wrapper" style="margin-top:8px;">
+        <div class="mu" style="font-size:10px; opacity:0.7;">KODE CADANGAN</div>
+        <div style="font-family:var(--font-bold); font-size:14px; color:var(--accent); word-break:break-all;" id="code-backup"></div>
+      </div>
+
       <div class="row" style="margin-top:16px;">
-        <button class="g" id="cp" type="button" style="flex:1; font-size:13px; padding:10px;">Copy</button>
+        <button class="g" id="cp" type="button" style="flex:1; font-size:13px; padding:10px;">Salin Kode</button>
         <button class="g" id="out" type="button" style="flex:1; font-size:13px; padding:10px;">Log Out</button>
       </div>
       <div id="net" class="mu"></div>
@@ -284,14 +289,12 @@ body.has-alert #chat { padding-top: 64px; }
 
 <input type="file" id="fileImg" accept="image/*" hidden>
 
-<!-- Menu Melayang untuk Pesan -->
 <div id="ctxMenu" hidden>
   <button id="btnReply">Balas</button>
   <button id="btnEdit">Edit Pesan</button>
   <button id="btnDel" class="del">Hapus Pesan</button>
 </div>
 
-<!-- Menu Melayang untuk Kontak -->
 <div id="contactMenu" hidden>
   <button id="btnEditContact">✏️ Edit Nama</button>
   <button id="btnHideContact" class="del">✖ Hapus Kontak</button>
@@ -325,28 +328,19 @@ let missedPongs = {};
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
 let audioCtx = null;
 
-function updateSoundIcon() {
-  $("#btnSoundToggle").textContent = soundEnabled ? "🔔" : "🔕";
-}
+function updateSoundIcon() { $("#btnSoundToggle").textContent = soundEnabled ? "🔔" : "🔕"; }
 updateSoundIcon();
 
 $("#btnSoundToggle").onclick = () => {
   soundEnabled = !soundEnabled;
   localStorage.setItem("ac_sound", soundEnabled ? "on" : "off");
   updateSoundIcon();
-  if (soundEnabled) {
-    unlockAudio();
-    playTing(); 
-  }
+  if (soundEnabled) { unlockAudio(); playTing(); }
 };
 
 function unlockAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+  if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  if (audioCtx.state === 'suspended') { audioCtx.resume(); }
 }
 
 function playTing() {
@@ -358,15 +352,12 @@ function playTing() {
     osc1.type = 'sine'; osc1.frequency.setValueAtTime(1318.51, now);
     gain1.gain.setValueAtTime(0, now); gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
     gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-    osc1.connect(gain1); gain1.connect(audioCtx.destination);
-    osc1.start(now); osc1.stop(now + 0.2);
-
+    osc1.connect(gain1); gain1.connect(audioCtx.destination); osc1.start(now); osc1.stop(now + 0.2);
     const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
     osc2.type = 'sine'; osc2.frequency.setValueAtTime(1567.98, now + 0.1);
     gain2.gain.setValueAtTime(0, now + 0.1); gain2.gain.linearRampToValueAtTime(0.3, now + 0.12);
     gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-    osc2.connect(gain2); gain2.connect(audioCtx.destination);
-    osc2.start(now + 0.1); osc2.stop(now + 0.3);
+    osc2.connect(gain2); gain2.connect(audioCtx.destination); osc2.start(now + 0.1); osc2.stop(now + 0.3);
   } catch(e) {}
 }
 
@@ -405,6 +396,10 @@ let users=gs("ac_users",{});
 const say=t=>{$("#msg").textContent=t},net=t=>{$("#net").textContent=t};
 const cleanCode=s=>String(s||"").replace(/[^A-Za-z0-9]/g,"").slice(0,24);
 
+function generateSystemCode() {
+  return "ac-" + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 6);
+}
+
 function blobToBase64(blob) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); }); }
 function base64ToBlob(base64) { const parts = base64.split(';base64,'); const contentType = parts[0].split(':')[1]; const raw = window.atob(parts[1]); const rawLength = raw.length; const uInt8Array = new Uint8Array(rawLength); for (let i = 0; i < rawLength; ++i) { uInt8Array[i] = raw.charCodeAt(i); } return new Blob([uInt8Array], {type: contentType}); }
 function compressImage(file, maxWidth = 800) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = event => { const img = new Image(); img.src = event.target.result; img.onload = () => { let width = img.width; let height = img.height; if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; } const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, width, height); canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.7); }; img.onerror = err => reject(err); }; reader.onerror = err => reject(err); }); }
@@ -419,27 +414,84 @@ $("#tL").onclick=()=>setMode("L");$("#tR").onclick=()=>setMode("R");
 $("#sh").onchange=e=>{$("#p").type=$("#p2").type=e.target.checked?"text":"password"};
 function findCodeOwner(code,exceptId){ return Object.keys(users).find(k=>k!==exceptId&&users[k].code===code); }
 
+// --- FITUR PENGECEKAN KODE SAAT REGISTER ---
+async function checkCodeAvailability(code) {
+  return new Promise((resolve) => {
+    const testPeer = new Peer(PFX + code);
+    let resolved = false;
+    
+    testPeer.on('open', () => {
+      if(resolved) return;
+      resolved = true;
+      testPeer.destroy(); // Kode tersedia, matikan tes
+      resolve(true);
+    });
+    
+    testPeer.on('error', (err) => {
+      if(resolved) return;
+      resolved = true;
+      testPeer.destroy(); // Gagal, matikan tes
+      if(err.type === 'unavailable-id') resolve(false); // Kode dipakai
+      else resolve(true); // Anggap true jika error jaringan lain
+    });
+    
+    // Timeout pengaman 5 detik
+    setTimeout(() => {
+      if(!resolved) {
+        resolved = true;
+        testPeer.destroy();
+        resolve(true); 
+      }
+    }, 5000);
+  });
+}
+
 async function submit(){
   say("");
-  const name=$("#u").value.trim(),code=cleanCode($("#c").value),pw=$("#p").value,id=name.toLowerCase();
+  const name=$("#u").value.trim();
+  const code=cleanCode($("#c").value);
+  const pw=$("#p").value;
+  const id=name.toLowerCase();
+  
   if(!window.crypto||!crypto.subtle)return say("Browser ini tidak mendukung penyimpanan password yang aman.");
   if(!/^[A-Za-z0-9_]{3,20}$/.test(name))return say("Username 3 sampai 20 karakter.");
+  
   if(mode==="R"){
     if(code.length<3)return say("Kode undangan minimal 3 karakter.");
     if(pw.length<8||!/[A-Za-z]/.test(pw)||!/\d/.test(pw))return say("Password minimal 8 karakter, ada huruf & angka.");
     if(pw!==$("#p2").value)return say("Ulangi password tidak sama.");
     if(users[id])return say("Username sudah dipakai.");
     const taken=findCodeOwner(code,null);
-    if(taken)return say("Kode undangan sudah dipakai.");
-  }else{ if(Date.now()<lock)return say("Terlalu banyak percobaan. Tunggu sebentar."); }
+    if(taken)return say("Kode undangan sudah dipakai (Lokal).");
+    
+    // --- PENGECEKAN JARINGAN ---
+    $("#go").disabled = true;
+    $("#go").textContent = "Mengecek kode...";
+    
+    const isAvailable = await checkCodeAvailability(code);
+    if(!isAvailable) {
+      $("#go").disabled = false;
+      $("#go").textContent = "Register";
+      return say("Kode undangan ini sudah dipakai orang lain di jaringan. Silakan ganti.");
+    }
+    // ----------------------------
+    
+  }else{ 
+    if(Date.now()<lock)return say("Terlalu banyak percobaan. Tunggu sebentar."); 
+  }
+  
   $("#go").disabled=true;
   try{
     if(mode==="R"){
       const fresh=gs("ac_users",{});
       if(fresh[id])return say("Username baru saja dipakai.");
       if(findCodeOwner(code,null))return say("Kode undangan baru saja dipakai.");
+      
       const salt=rnd(),h=await hash(pw,salt);
-      fresh[id]={name,code,salt,hash:h};users=fresh;ss("ac_users",users);start(id);
+      const backupCode = generateSystemCode();
+      
+      fresh[id]={name,code,backupCode,salt,hash:h};
+      users=fresh;ss("ac_users",users);start(id);
     }else{
       const u=users[id];
       if(!u){if(++fails>=5){lock=Date.now()+60000;fails=0}return say("Username atau password salah.")}
@@ -449,31 +501,63 @@ async function submit(){
       fails=0;start(id);
     }
   }catch(e){say("Terjadi masalah. Coba lagi.")}
-  finally{$("#go").disabled=false}
+  finally{$("#go").disabled=false; $("#go").textContent=mode==="L"?"Sign In":"Register";}
 }
 $("#go").onclick=submit;
 [$("#u"),$("#c"),$("#p"),$("#p2")].forEach(i=>i.onkeydown=e=>{if(e.key==="Enter")submit()});
 
 function start(id){
   ss("ac_session",{u:id});
-  const u=users[id];me={id,name:u.name,code:u.code};
+  const u=users[id];me={id,name:u.name,code:u.code,backupCode:u.backupCode||u.code,activeCode:u.code};
   contacts=gs("ac_c_"+id,{});msgs=gs("ac_m_"+id,{});conns={};cur=null;
-  $("#auth").hidden=true;$("#chat").hidden=false;$("#who").textContent=u.name.toUpperCase();$("#code").textContent=u.code;
+  $("#auth").hidden=true;$("#chat").hidden=false;$("#who").textContent=u.name.toUpperCase();
+  
+  renderCodes();
+  
   $("#p").value=$("#p2").value="";$("#c").value="";$("#search").value="";renderList();startPeer();checkStorage(true);
 }
+
+function renderCodes() {
+  $("#code-active").textContent = me.activeCode;
+  $("#code-backup").textContent = me.backupCode;
+}
+
 function startPeer(){
   if(typeof Peer==="undefined")return net("Pustaka koneksi gagal dimuat.");
   net("Menyambung...");
-  peer=new Peer(PFX+me.code);
-  peer.on("open",()=>{retry=0;net("ONLINE");Object.keys(contacts).forEach(connect); startHeartbeat();});
+  
+  if(peer) peer.destroy();
+  peer = new Peer(PFX + me.activeCode);
+  
+  peer.on("open",()=>{
+    retry=0; net("ONLINE"); 
+    if(me.activeCode !== me.code) net("ONLINE (Kode Cadangan)"); 
+    else net("ONLINE");
+    Object.keys(contacts).forEach(connect); startHeartbeat();
+  });
+  
   peer.on("connection",setup);
   peer.on("disconnected",()=>{if(peer&&!peer.destroyed){net("Terputus...");try{peer.reconnect()}catch(e){}}});
+  
   peer.on("error",e=>{
-    if(e.type==="unavailable-id"){ peer.destroy(); if(retry++<3){net("Mencoba...");setTimeout(startPeer,3000)} else{net("Kode dipakai.");retry=0} }
+    if(e.type==="unavailable-id"){ 
+      peer.destroy(); 
+      if(me.activeCode === me.code) {
+        // Gagal pakai kode custom, coba beralih ke kode sistem
+        net("Kode custom bentrok, beralih...");
+        me.activeCode = me.backupCode;
+        renderCodes();
+        setTimeout(startPeer, 1000);
+      } else {
+        // Gagal pakai kode sistem (sangat jarang)
+        net("Kode cadangan juga bentrok. Ganti akun.");
+      }
+    }
     else if(e.type==="peer-unavailable"){ if(pend){$("#fm").textContent="Kode tidak ditemukan.";pend=null} }
     else net("Gangguan koneksi.");
   });
 }
+
 const codeOf=c=>c.peer.slice(PFX.length);
 function connect(k){if(!peer||!peer.open)return;if(conns[k]&&conns[k].open)return;setup(peer.connect(PFX+k,{reliable:true}))}
 function setup(c){
@@ -533,7 +617,7 @@ function flushQueue(k) {
 
 async function handle(c,d){
   if(!d||typeof d!=="object")return;
-  const k=codeOf(c);if(!k||k===me.code)return;
+  const k=codeOf(c);if(!k||k===me.activeCode)return;
   
   if(d.t==="ping"){ if(c.open) c.send({t:"pong"}); return; }
   if(d.t==="pong"){ missedPongs[k] = 0; return; }
@@ -642,12 +726,11 @@ function renderList(){
     const nameWrapper = document.createElement("div"); 
     nameWrapper.style.display = "flex"; 
     nameWrapper.style.alignItems = "center"; 
-    nameWrapper.style.flex = "1"; // Agar nama mengisi ruang
+    nameWrapper.style.flex = "1";
     nameWrapper.style.overflow = "hidden";
     nameWrapper.appendChild(nameSpan);
     if (badge.textContent !== "") nameWrapper.appendChild(badge);
     
-    // Ikon Titik Tiga
     const btnMenu = document.createElement("button");
     btnMenu.className = "btn-menu";
     btnMenu.innerHTML = "⋮";
@@ -657,8 +740,6 @@ function renderList(){
       const rect = btnMenu.getBoundingClientRect();
       const menu = $("#contactMenu"); 
       menu.hidden = false;
-      
-      // Posisikan menu
       menu.style.left = Math.min(rect.left, window.innerWidth - 180) + "px";
       menu.style.top = (rect.bottom + 5) + "px";
     };
@@ -823,7 +904,6 @@ $("#msgs").oncontextmenu = (e) => {
   $("#btnDel").hidden = (msgData.f !== 1 || Date.now() - time > EDIT_TIME_LIMIT);
 };
 
-// Deteksi klik di luar untuk menutup semua menu
 document.addEventListener("click", (e)=>{
   if(!e.target.closest("#ctxMenu") && !e.target.closest(".m")) {
     $("#ctxMenu").hidden = true;
@@ -887,7 +967,6 @@ $("#btnDelAll").onclick=async ()=>{
   renderMsgs(); if(on(cur)) conns[cur].send({t:"clear"});
 };
 
-// --- MENU KONTAK TITIK TIGA ---
 $("#btnEditContact").onclick = () => {
   $("#contactMenu").hidden = true;
   if(!contactMenuTarget) return;
@@ -916,7 +995,6 @@ $("#btnHideContact").onclick = () => {
   }
   contactMenuTarget = null;
 };
-// ------------------------------
 
 $("#back").onclick=()=>{$("#chat").classList.remove("open"); $("#ctxMenu").hidden = true; closeReply();};
 
@@ -1023,14 +1101,14 @@ $("#form").onsubmit=e=>{e.preventDefault();
 $("#add").onclick=()=>{
   const k=cleanCode($("#fc").value),f=$("#fm");f.textContent="";
   if(k.length<3)return f.textContent="Kode minimal 3 karakter.";
-  if(k===me.code)return f.textContent="Itu kodemu sendiri.";
+  if(k===me.activeCode)return f.textContent="Itu kodemu sendiri.";
   if(!peer||!peer.open)return f.textContent="Belum tersambung.";
   $("#fc").value="";
   if(contacts[k])return openChat(k);
   pend=k;f.textContent="Menghubungi...";connect(k);
   setTimeout(()=>{if(pend===k){pend=null;f.textContent="Kode tidak ditemukan."}},8000);
 };
-$("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(me.code);$("#cp").textContent="Copied!";setTimeout(()=>$("#cp").textContent="Copy",1500)}catch(e){}};
+$("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(me.activeCode);$("#cp").textContent="Tersalin!";setTimeout(()=>$("#cp").textContent="Salin Kode",1500)}catch(e){}};
 
 $("#storNow").onclick=async ()=>{
   if(!me || !confirm("Hapus semua percakapan dan media?")) return;
