@@ -108,7 +108,6 @@ body.has-alert #chat { padding-top: 64px; }
 #peer-status { font-size: 12px; font-weight: 400; font-family: var(--font-sans); color: var(--tx-secondary); letter-spacing: 0.5px; margin-top: 2px; }
 #peer-status.online { color: var(--accent); }
 
-/* Sejajarkan Tombol Header */
 #head-actions { display: flex; gap: 4px; margin-left: auto; align-items: center; }
 #btnDelAll, #btnThemeToggle, #btnSoundToggle, #btnWallpaper { background: transparent; border: none; color: var(--tx-secondary); font-size: 18px; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
 #btnThemeToggle:hover, #btnSoundToggle:hover, #btnWallpaper:hover { color: var(--accent); background: var(--bg-hover); }
@@ -185,12 +184,53 @@ body.has-alert #chat { padding-top: 64px; }
 #ctxMenu button:hover, #contactMenu button:hover { background: var(--bg-hover); color: var(--accent); }
 #ctxMenu button.del, #contactMenu button.del { color: #ff453a; }
 
-.audio-container { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.05); padding: 10px 14px; border-radius: 12px; margin-top: 6px; }
-.m.me2 .audio-container { background: rgba(0,0,0,0.1); }
-.audio-container button { background: var(--bg-main); color: var(--tx-primary); border-radius: 50%; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-.audio-progress { flex: 1; height: 4px; background: rgba(128,128,128,0.3); border-radius: 2px; overflow: hidden; position: relative; }
-.audio-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--accent); transition: width 0.1s; }
-.audio-time { font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 500; }
+/* --- GAYA WAVEFORM AUDIO (SPOTIFY STYLE) --- */
+.audio-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.08);
+  padding: 8px 14px;
+  border-radius: 12px;
+  margin-top: 6px;
+}
+.m.me2 .audio-container { background: rgba(0,0,0,0.15); }
+
+.audio-play-btn {
+  background: var(--bg-main);
+  color: var(--tx-primary);
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  padding: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; cursor: pointer; flex-shrink: 0;
+}
+.m.me2 .audio-play-btn { background: var(--on-bubble-me); color: var(--accent); }
+
+.audio-waveform {
+  flex: 1;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.audio-bar {
+  width: 3px;
+  background: rgba(128,128,128,0.4);
+  border-radius: 2px;
+  transition: height 0.1s, background 0.1s;
+}
+.m.me2 .audio-bar { background: rgba(255,255,255,0.4); }
+.audio-bar.active { background: var(--tx-primary); }
+.m.me2 .audio-bar.active { background: #fff; }
+
+.audio-time {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
 
 .image-container { margin-top: 8px; border-radius: 12px; overflow: hidden; max-width: 100%; cursor: pointer; width: 250px; height: 250px; background: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); }
 .image-container img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -390,6 +430,9 @@ let missedPongs = {};
 
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
 let audioCtx = null;
+
+// Variabel untuk menangani Retry
+let peerRetryTimer = null;
 
 // --- LOGIKA WALLPAPER ---
 let currentWallpaper = localStorage.getItem("ac_wallpaper") || "none";
@@ -662,11 +705,13 @@ function start(id){
   $("#p").value=$("#p2").value="";$("#c").value="";$("#search").value="";renderList();startPeer();checkStorage(true);
 }
 
+// --- PERBAIKAN LOGIKA KONEKSI & RETRY (STABIL) ---
 function startPeer(){
   if(typeof Peer==="undefined")return net("Pustaka koneksi gagal dimuat.");
   net("Menyambung...");
+  clearTimeout(peerRetryTimer);
   
-  if(peer) peer.destroy();
+  if(peer) peer.destroy(); // Hancurkan total koneksi lama
   peer = new Peer(PFX + me.activeCode);
   
   peer.on("open",()=>{
@@ -677,25 +722,40 @@ function startPeer(){
   });
   
   peer.on("connection",setup);
-  peer.on("disconnected",()=>{if(peer&&!peer.destroyed){net("Terputus...");try{peer.reconnect()}catch(e){}}});
+  
+  peer.on("disconnected",()=>{
+    if(peer && !peer.destroyed){
+      net("Terputus, mencoba menyambung ulang...");
+      try{ peer.reconnect() }catch(e){}
+    }
+  });
   
   peer.on("error",e=>{
     if(e.type==="unavailable-id"){ 
       peer.destroy(); 
       if(me.activeCode === me.code) {
-        net("Kode custom bentrok, beralih...");
+        // Kode custom bentrok, beralih ke kode cadangan
+        net("Kode custom bentrok, beralih ke cadangan...");
         me.activeCode = me.backupCode;
         $("#code-active").textContent = me.activeCode;
         $("#code-backup").textContent = me.code;
-        setTimeout(startPeer, 1000);
+        peerRetryTimer = setTimeout(startPeer, 2000); // Jeda 2 detik sebelum pindah
       } else {
-        net("Kode cadangan juga bentrok.");
+        // Kode cadangan juga bentrok (kemungkinan buka di 2 tab)
+        net("Koneksi terputus. Mencoba lagi dalam 3 detik...");
+        peerRetryTimer = setTimeout(startPeer, 3000); 
       }
     }
-    else if(e.type==="peer-unavailable"){ if(pend){$("#fm").textContent="Kode tidak ditemukan.";pend=null} }
-    else net("Gangguan koneksi.");
+    else if(e.type==="peer-unavailable"){ 
+      if(pend){$("#fm").textContent="Kode tidak ditemukan.";pend=null} 
+    }
+    else {
+      net("Gangguan koneksi, mencoba lagi...");
+      peerRetryTimer = setTimeout(startPeer, 5000);
+    }
   });
 }
+// ------------------------------------------
 
 const codeOf=c=>c.peer.slice(PFX.length);
 function connect(k){if(!peer||!peer.open)return;if(conns[k]&&conns[k].open)return;setup(peer.connect(PFX+k,{reliable:true}))}
@@ -937,11 +997,22 @@ async function renderMsgs(){
     
     if (m.type === "audio") {
       const aDiv = document.createElement("div"); aDiv.className = "audio-container";
-      const btn = document.createElement("button"); btn.innerHTML = "▶";
-      const progDiv = document.createElement("div"); progDiv.className = "audio-progress";
-      const bar = document.createElement("div"); bar.className = "audio-bar"; progDiv.appendChild(bar);
+      const btn = document.createElement("button"); btn.className = "audio-play-btn"; btn.innerHTML = "▶";
+      
+      const waveDiv = document.createElement("div"); waveDiv.className = "audio-waveform";
+      const bars = [];
+      for(let i=0; i<25; i++) {
+        const bar = document.createElement("div");
+        bar.className = "audio-bar";
+        bar.style.height = (Math.floor(Math.random() * 16) + 8) + "px";
+        waveDiv.appendChild(bar);
+        bars.push(bar);
+      }
+      
       const timeSpan = document.createElement("span"); timeSpan.className = "audio-time"; timeSpan.textContent = m.x; 
-      aDiv.appendChild(btn); aDiv.appendChild(progDiv); aDiv.appendChild(timeSpan); el.appendChild(aDiv);
+      
+      aDiv.appendChild(btn); aDiv.appendChild(waveDiv); aDiv.appendChild(timeSpan); el.appendChild(aDiv);
+      
       let audioObj = null;
       btn.onclick = async () => {
         if (isProcessingAudio) return alert("Audio sedang diproses...");
@@ -950,13 +1021,29 @@ async function renderMsgs(){
             const blob = await getMedia("audio_"+m.id);
             if (!blob) return alert("File audio hilang.");
             audioObj = new Audio(URL.createObjectURL(blob));
-            audioObj.ontimeupdate = () => { bar.style.width = (audioObj.currentTime / audioObj.duration) * 100 + "%"; timeSpan.textContent = formatTime(audioObj.currentTime); };
-            audioObj.onended = () => { btn.innerHTML = "▶"; bar.style.width = "0%"; timeSpan.textContent = m.x; };
+            
+            audioObj.ontimeupdate = () => { 
+              const pct = (audioObj.currentTime / audioObj.duration) * 100; 
+              const activeIndex = Math.floor((pct / 100) * 25);
+              
+              bars.forEach((bar, idx) => {
+                if(idx <= activeIndex) bar.classList.add("active");
+                else bar.classList.remove("active");
+              });
+
+              timeSpan.textContent = formatTime(audioObj.currentTime); 
+            };
+            audioObj.onended = () => { 
+              btn.innerHTML = "▶"; 
+              bars.forEach(bar => bar.classList.remove("active"));
+              timeSpan.textContent = m.x; 
+            };
           } catch(e) { return alert("Gagal memuat audio."); }
         }
         if (audioObj.paused) { audioObj.play(); btn.innerHTML = "⏸"; } 
         else { audioObj.pause(); btn.innerHTML = "▶"; }
       };
+      
     } else if (m.type === "img") {
       const imgDiv = document.createElement("div"); imgDiv.className = "image-container";
       const img = document.createElement("img"); img.alt = "Memuat...";
@@ -1262,7 +1349,7 @@ $("#storLater").onclick=()=>{storDismissed=true;storCountdown=0;showStorBar()};
 
 $("#out").onclick=()=>{try{localStorage.removeItem("ac_session")}catch(e){}
   if(peer)peer.destroy();peer=null;me=cur=null;conns={};
-  clearInterval(heartbeatInterval);
+  clearInterval(heartbeatInterval); clearTimeout(peerRetryTimer);
   $("#chat").hidden=true;$("#auth").hidden=false;$("#chat").classList.remove("open");
   $("#form").hidden=true;$("#peer-name").textContent="Pilih percakapan";$("#peer-status").textContent="";$("#msgs").textContent="";$("#u").value="";$("#c").value="";$("#p").value="";$("#p2").value="";say("");
   document.body.classList.remove("has-alert");$("#storbar").hidden=true;};
