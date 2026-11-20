@@ -64,7 +64,6 @@ body.has-alert #chat { padding-top: 64px; }
 .me::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
 #who { font-family: var(--font-bold); font-size: 20px; font-weight: 800; color: var(--accent); margin-bottom: 12px; letter-spacing: -0.5px; }
 
-/* Dropdown Invite Code */
 #invite-section { margin-top: 10px; }
 #invite-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
 #invite-header .mu { margin: 0; }
@@ -72,7 +71,6 @@ body.has-alert #chat { padding-top: 64px; }
 #invite-content { display: none; padding-top: 12px; animation: slideDown 0.3s ease; }
 #invite-content.open { display: block; }
 #invite-arrow.open { transform: rotate(180deg); }
-
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
 .code-box { background: var(--bg-main); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); }
@@ -110,12 +108,18 @@ body.has-alert #chat { padding-top: 64px; }
 #peer-status { font-size: 12px; font-weight: 400; font-family: var(--font-sans); color: var(--tx-secondary); letter-spacing: 0.5px; margin-top: 2px; }
 #peer-status.online { color: var(--accent); }
 
-#btnDelAll, #btnThemeToggle, #btnSoundToggle { background: transparent; border: none; color: var(--tx-secondary); font-size: 18px; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
+#btnDelAll, #btnThemeToggle, #btnSoundToggle, #btnWallpaper { background: transparent; border: none; color: var(--tx-secondary); font-size: 18px; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
 #btnThemeToggle { margin-left: auto; }
-#btnThemeToggle:hover, #btnSoundToggle:hover { color: var(--accent); background: var(--bg-hover); }
+#btnThemeToggle:hover, #btnSoundToggle:hover, #btnWallpaper:hover { color: var(--accent); background: var(--bg-hover); }
 #btnDelAll:hover { color: #ff453a; background: var(--bg-hover); }
 
-#chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; position: relative; }
+/* WALLPAPER PANEL */
+#wpMenu { position: fixed; z-index: 100; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 12px; display: flex; gap: 10px; flex-wrap: wrap; width: 220px; }
+.wp-opt { width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; }
+.wp-opt:hover { transform: scale(1.1); border-color: var(--accent); }
+.wp-opt.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--bg-panel) inset; }
+
+#chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; position: relative; background-size: cover; background-position: center; transition: background-image 0.3s ease; }
 #chat-container::-webkit-scrollbar { width: 6px; }
 #chat-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 6px; }
 
@@ -146,7 +150,7 @@ body.has-alert #chat { padding-top: 64px; }
 #reply-close { background: transparent; border: none; color: var(--tx-secondary); font-size: 20px; cursor: pointer; padding: 4px; }
 #reply-close:hover { color: #ff453a; }
 
-#form { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
+#form { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; flex-shrink: 0; position: relative; }
 #form input { margin: 0; border-radius: 12px; padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--border-color); }
 #form input:focus { border-color: var(--accent); box-shadow: none; }
 #form button[type="submit"] { border-radius: 12px; width: auto; padding: 0 24px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
@@ -154,6 +158,11 @@ body.has-alert #chat { padding-top: 64px; }
 .btn-tool:hover { border-color: var(--accent); color: var(--accent); }
 #btnMic.recording { color: #ff453a; border-color: #ff453a; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+/* EMOJI PICKER */
+#emojiPicker { position: absolute; bottom: 80px; left: 24px; z-index: 100; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; width: 280px; max-height: 200px; overflow-y: auto; }
+#emojiPicker span { font-size: 24px; cursor: pointer; transition: transform 0.1s; }
+#emojiPicker span:hover { transform: scale(1.3); }
 
 #ctxMenu, #contactMenu { 
   position: fixed; z-index: 100; background: var(--bg-card); 
@@ -207,6 +216,8 @@ body.has-alert #chat { padding-top: 64px; }
   .btn-tool { width: 44px; height: 44px; font-size: 16px; flex-shrink: 0; }
   
   .m { touch-action: pan-y; }
+  
+  #emojiPicker { left: 12px; bottom: 85px; width: calc(100vw - 24px); }
 }
 </style></head><body>
 
@@ -244,7 +255,6 @@ body.has-alert #chat { padding-top: 64px; }
       <div class="mu">WELCOME,</div>
       <div id="who"></div>
       
-      <!-- Dropdown Kode Undangan -->
       <div id="invite-section">
         <div id="invite-header">
           <span class="mu" style="font-size:11px; font-weight:600;">INVITE CODE</span>
@@ -256,7 +266,6 @@ body.has-alert #chat { padding-top: 64px; }
             <span class="code-text" id="code-active"></span>
             <button id="cp-active" type="button">Salin</button>
           </div>
-          
           <div class="mu" style="font-size:10px; margin-bottom:4px; margin-top:8px;">Kode Cadangan</div>
           <div class="code-box" style="opacity:0.8;">
             <span class="code-text" id="code-backup"></span>
@@ -288,6 +297,7 @@ body.has-alert #chat { padding-top: 64px; }
       </div>
       
       <button id="btnSoundToggle" type="button" title="Suara Notifikasi">🔔</button>
+      <button id="btnWallpaper" type="button" title="Ubah Wallpaper">🎨</button>
       <button id="btnThemeToggle" type="button" title="Ubah Tema">🌓</button>
       <button id="btnDelAll" type="button" title="Hapus semua pesan di ruangan ini">🗑️</button>
     </div>
@@ -307,6 +317,7 @@ body.has-alert #chat { padding-top: 64px; }
     </div>
 
     <form id="form" hidden>
+      <button type="button" id="btnEmoji" class="btn-tool" title="Emoji">😊</button>
       <button type="button" id="btnImg" class="btn-tool" title="Kirim Gambar">🖼️</button>
       <button type="button" id="btnMic" class="btn-tool" title="Rekam pesan suara">🎤</button>
       <input id="t" maxlength="500" placeholder="Tulis pesan..." autocomplete="off">
@@ -316,6 +327,17 @@ body.has-alert #chat { padding-top: 64px; }
 </div>
 
 <input type="file" id="fileImg" accept="image/*" hidden>
+
+<div id="emojiPicker" hidden>
+  <!-- Emoji akan diisi via JS -->
+</div>
+
+<div id="wpMenu" hidden>
+  <div class="wp-opt" data-wp="none" style="background:var(--bg-main); border:1px dashed var(--border-color);" title="Polos"></div>
+  <div class="wp-opt" data-wp="dots" style="background-image:radial-gradient(var(--border-color) 1px, transparent 1px); background-size:10px 10px;" title="Titik-titik"></div>
+  <div class="wp-opt" data-wp="lines" style="background-image:repeating-linear-gradient(45deg, var(--border-color) 0, var(--border-color) 1px, transparent 1px, transparent 10px);" title="Garis"></div>
+  <div class="wp-opt" data-wp="leaf" style="background: radial-gradient(circle, #a7f3d0 0%, transparent 70%);" title="Dedaunan"></div>
+</div>
 
 <div id="ctxMenu" hidden>
   <button id="btnReply">Balas</button>
@@ -356,12 +378,68 @@ let missedPongs = {};
 let soundEnabled = localStorage.getItem("ac_sound") !== "off"; 
 let audioCtx = null;
 
-// --- FITUR DROPDOWN INVITE CODE ---
-$("#invite-header").onclick = () => {
-  $("#invite-content").classList.toggle("open");
-  $("#invite-arrow").classList.toggle("open");
+// --- LOGIKA WALLPAPER ---
+let currentWallpaper = localStorage.getItem("ac_wallpaper") || "none";
+
+function applyWallpaper(wp) {
+  const container = $("#chat-container");
+  container.style.backgroundImage = "";
+  container.style.backgroundColor = "transparent";
+
+  if (wp === "dots") container.style.backgroundImage = "radial-gradient(var(--border-color) 1px, transparent 1px)";
+  else if (wp === "lines") container.style.backgroundImage = "repeating-linear-gradient(45deg, var(--border-color) 0, var(--border-color) 1px, transparent 1px, transparent 10px)";
+  else if (wp === "leaf") container.style.backgroundImage = "radial-gradient(circle, rgba(167,243,208,0.5) 0%, transparent 70%)";
+  
+  if(wp === "dots" || wp === "lines") container.style.backgroundSize = "10px 10px";
+  else container.style.backgroundSize = "cover";
+
+  localStorage.setItem("ac_wallpaper", wp);
+  currentWallpaper = wp;
+  
+  // Update active state in menu
+  document.querySelectorAll('.wp-opt').forEach(el => {
+    if(el.dataset.wp === wp) el.classList.add("active");
+    else el.classList.remove("active");
+  });
+}
+applyWallpaper(currentWallpaper);
+
+$("#btnWallpaper").onclick = (e) => {
+  e.stopPropagation();
+  const rect = $("#btnWallpaper").getBoundingClientRect();
+  const menu = $("#wpMenu");
+  menu.hidden = !menu.hidden;
+  menu.style.left = Math.min(rect.left, window.innerWidth - 240) + "px";
+  menu.style.top = (rect.bottom + 5) + "px";
 };
-// ----------------------------------
+
+document.querySelectorAll('.wp-opt').forEach(el => {
+  el.onclick = () => {
+    applyWallpaper(el.dataset.wp);
+    $("#wpMenu").hidden = true;
+  };
+});
+// -------------------------
+
+// --- LOGIKA EMOJI PICKER ---
+const emojis = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😹","😻","😼","😽","🙀","😿","😾"];
+const emojiContainer = $("#emojiPicker");
+emojis.forEach(e => {
+  const span = document.createElement("span");
+  span.textContent = e;
+  span.onclick = () => {
+    const input = $("#t");
+    input.value += e;
+    input.focus();
+  };
+  emojiContainer.appendChild(span);
+});
+
+$("#btnEmoji").onclick = (e) => {
+  e.stopPropagation();
+  $("#emojiPicker").hidden = !$("#emojiPicker").hidden;
+};
+// ----------------------------
 
 function updateSoundIcon() { $("#btnSoundToggle").textContent = soundEnabled ? "🔔" : "🔕"; }
 updateSoundIcon();
@@ -400,6 +478,16 @@ document.addEventListener('click', unlockAudio);
 document.addEventListener('keydown', unlockAudio);
 document.addEventListener('touchstart', unlockAudio);
 
+// Close menus on click outside
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest("#emojiPicker") && !e.target.closest("#btnEmoji")) {
+    $("#emojiPicker").hidden = true;
+  }
+  if(!e.target.closest("#wpMenu") && !e.target.closest("#btnWallpaper")) {
+    $("#wpMenu").hidden = true;
+  }
+});
+
 function applyTheme(isDark) {
   if (isDark) { document.body.classList.add("dark-theme"); localStorage.setItem("ac_theme", "dark"); } 
   else { document.body.classList.remove("dark-theme"); localStorage.setItem("ac_theme", "light"); }
@@ -431,7 +519,6 @@ let users=gs("ac_users",{});
 const say=t=>{$("#msg").textContent=t},net=t=>{$("#net").textContent=t};
 const cleanCode=s=>String(s||"").replace(/[^A-Za-z0-9]/g,"").slice(0,24);
 
-// Generate System Code (9 digit angka)
 function generateSystemCode() {
   let num = "";
   for(let i=0; i<9; i++) num += Math.floor(Math.random() * 10);
@@ -543,17 +630,17 @@ function start(id){
   ss("ac_session",{u:id});
   const u=users[id];
   
-  // --- MIGRASI KODE CADANGAN UNTUK USER LAMA ---
+  // MIGRASI OTOMATIS KODE CADANGAN LAMA
   let needMigration = false;
-  if(!u.backupCode) needMigration = true; // Belum punya
-  else if(u.backupCode.startsWith("ac-")) needMigration = true; // Format lama
+  if(!u.backupCode) needMigration = true;
+  else if(u.backupCode.startsWith("ac-")) needMigration = true;
 
   if (needMigration) {
     u.backupCode = generateSystemCode();
     users[id] = u;
     ss("ac_users", users);
   }
-  // ---------------------------------------------
+  // ----------------------------------
 
   me={id,name:u.name,code:u.code,backupCode:u.backupCode,activeCode:u.code};
   contacts=gs("ac_c_"+id,{});msgs=gs("ac_m_"+id,{});conns={};cur=null;
